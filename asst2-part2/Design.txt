@@ -1,0 +1,167 @@
+﻿Kaitlin O’Leary - G01372290
+Shalini Maknoor - G01503797
+
+
+PA2 Part 2 Design Document 
+
+
+HIGH-LEVEL DESCRIPTION OF APPROACH
+
+
+To approach this problem, we needed to create a method for tracking the current processes and their pids. We created an array that serves as the process table in thread.c. We used index +1 as the pid for the process in that location. We then added several fields to the thread structure to track the pid, ppid, exit status, etc (see below for a full list and descriptions of the fields added). In our implementation, we used a thread to represent a process because this is a 1:1 system. We also used locks throughout to synchronize the code. We changed menu.c and runprogram() to handle command line arguments. In this design, the system works both with and without command line arguments. 
+
+
+When threads are created in thread_create(), the fields are initialized and the thread is added to the first NULL place in the process table array and assigned a pid of index+1. A process is removed from the table just before it exits after its exit code and pid are saved to its parent process’s structure. The parent retrieves the exit status during waitpid(). If the child is not finished executing, the parent sleeps and is woken by the child just before it exits after its exit code and pid are saved to the parent’s structure and the child is removed from the process table. The parent can then retrieve the exit status from its structure. 
+
+
+
+
+DETAILED DESCRIPTION OF IMPLEMENTATION 
+
+
+Process Table 
+
+
+We created a global array of thread pointers in thread.c to function as the process table. When a new process is created, it is added to the first NULL spot in the array. Then index+1 is assigned as that process’s PID. The process is created, added to the array, and the pid is generated in thread_create(). A process is removed from the table just before it exits after its exit code and pid are saved to its parent process’s structure.  After a process is removed, its pid can be reused by a newly created process. We also implemented a lock for the table so only one thread is updating the table at a time. We also added fields to the thread structure (see below).
+
+
+
+
+Helper functions
+
+
+getProcess() in thread.c
+
+
+In thread.c we added a helper function getProcess(). This function takes a pid and searches the process table for a process with that pid. It then returns a pointer to that process. If it is not found, it returns NULL. 
+
+
+procTableLock_init() in thread.c 
+
+
+In thread.c we added a helper function procTableLock_init() that creates procTableLock that is used for synchronization. 
+
+
+
+
+Fields added to the thread structure: 
+
+pid
+	the pid of the process, initialized to -1 
+ppid 
+	the pid of the parent process, initialized to -1 
+exit_status 
+	the exit status of the process, initialized to -1 
+waitingParent 
+	this is a pointer to a parent that is waiting for the process to finish, initialized to NULL
+lock
+	a lock for the process, created in thread_create() 
+is_zombie 
+	a 0/1 field that indicates if the thread is about to enter a zombie state, initialized to 0
+err 
+	used to save an error if one occurs and to retrieve it in syscall.c, initialized to 0
+child_exit_status 
+	exit status of the child, if child has not exited it is -1 
+child_pid
+	pid of the child, if no child it is -1 
+
+
+
+
+getpid() 
+
+
+Our getpid() implementation was rather simple. We assert that the thread is not NULL and then return the pid field of the current process. This function must be successful each time (no errors). 
+
+
+
+
+getppid()
+
+
+In this function, it returns the parent pid of the process, if it exists. If the parent either doesn’t exist or has already exited, it returns -1. When the thread is created, ppid is initialized to -1. Using the helper function getProcess(), it searches for the process with the ppid of the current process. If getProcess() returns NULL, the process does not exist and the function returns -1. The is_zombie field of a process indicates if it is about to exit and enter a zombie state. If the process found by getProcess() has a value of 1 for is_zombie, -1 is returned. Finally, the shell process will always be the process with a pid of 1. If the current process’s parent pid is 1, then -1 is also returned. Otherwise, the value stored in the current process’s ppid field is returned. -1 indicates that there was an error or the parent has already exited. 
+
+
+
+
+fork() 
+
+
+The fork() function creates a new process and copies the address space of the current process to create a child process. The two processes then continue executing. We passed the trapframe to sys_fork(). A new trapframe is allocated and created for the child process. 
+
+
+Then thread_fork() is called on the new child process with a function of md_forkentry that executes when a child is created. In thread_fork(), the child process is created and added to the process table with a call to fork_create(). A stack is then allocated for the child and a magic number is added to the bottom of the stack. The child then inherits the current directory. Next the parent’s address space is copied to the child’s address space. If this fails, the child is freed. Otherwise, the ppid of the child is updated to be the current process’s pid and the process is activated. Next the pcb is set up. With interrupts off, it makes sure the sleeper array, zombie array, and scheduler have enough space. We then make the process runnable and increase the number of threads. 0 is returned on success. After make_runnable(), the child starts executing md_forkentry(). 
+
+
+In md_forkentry(), a pointer to the trapframe is passed in. The function copies the trapframe from kernel heap to stack. It then sets the parent’s trapframe’s v0 and a3 to 0 and moves epf forward by 4 bytes. Then it activates the child’s address space and returns to user mode from the child process. 
+
+
+The function returns the child’s pid to the parent and 0 to the child. If the return value is -1, we set the error field of the thread for use in syscall.c. 
+
+
+
+
+execv()
+
+
+This function replaces the currently executing program with a new process. The parameters are the new program name and a pointer to the arguments array. If the program name is null or the argument array is null, we return EFAULT. Kernel space is allocated for the program name and the program name is copied from user space to kernel space. If the allocation fails, ENOMEM is returned. Next the kernel buffer is allocated for transferring arguments. The argument pointers are copied from user space to kernel space using copyin(). When a NULL pointer in the args is reached, we have reached the end of the arguments and exit the loop. Otherwise, space is allocated for that string argument and it is copied into the kernel space array using copyin(). Each argument requires padding before it is copied into the user stack. To determine if padding is needed, the length of the current argument string is found. To calculate the padding the formula 4-(lenOfArg %4)%4 is used. The memset() function is used to initialize the extra space to 0. A null terminator is then added to the end of the string. After all arguments are added to the kernel buffer and they are padded, a NULL argument is added to the end. Next, the executable is opened and is loaded into the ELF. A new address space is then created and activated for the new program. The executable is then loaded into the new address space and the executable file is closed. The padded arguments are copied from the kernel buffer to the user stack. To do this, the user stack pointer is decremented by 4, the argument is copied to the user stack using copyout(), and the address of the argument is saved in the argv array.. This is repeated for each argument in the kernel buffer. The argv array is then ended with a NULL character. The stack pointer is then decremented by the size of the argv array and the array is copied to the user stack and the address of the argv array is saved. Then the function returns to user mode using md_usermode(). 
+
+
+
+waitpid()
+
+
+The function waitpid() is called by a parent process to wait for its child to exit. It takes the pid of the child, a status user pointer for the storage of the exit status of the child, and an options integer (always 0 in this case). It returns the pid of the child and stores the exit status in the status pointer. For use in this function, we added  child_pid and child_exit_status fields to the thread structure. 
+
+
+First, the parameters are validated. If options is not 0, the error field for the process is set to EINVAL and -1 is returned. The status pointer is then validated. As part of the function, copyin() validates the pointer before it copies anything. So to validate the status pointer, we used copyin(). If copyin() returns anything except 0, it encounters an error. In this case, the error field is set to that error and -1 is returned. Additionally, if status is NULL, the error field is set to EFAULT and -1 is returned. 
+
+
+Next, The child process is found in the process table using the helper function getProcess(). If this function returns NULL, the child does not exist in the table. In this case, either the child has already executed or the pid given is not a valid pid. If the parent’s child_exit_status field is not -1, then the child has already exited. If this is true, the child_exit_status of the parent is copied to the status user pointer using copyout and the pid of the child is returned. If the child cannot be found and the parent’s child_exit_status is -1, then the pid given is not valid and the error is set to EINVAL and -1 and returned. 
+
+
+Otherwise, the child has not finished executing. In this case, the parent is added to the waitingParent field of the child process. This ensures the child knows which process to wake up after it finishes executing. The parent thread is then put to sleep. In thread_exit(), right before the child finishes executing and goes into a ZOMB state, it removes itself from the process table and then wakes the parent. When the parent wakes up, it now holds the exit status of the child in its child_exit_status field. The child_exit_status is copied to the status user pointer using copyout() and the pid of the child is returned. 
+
+
+
+
+exit()
+
+
+The exit() function takes the exit code as the parameter. The exit code field of the process is set to that code. Then thead_exit() is called. In thread_exit(), the stack is checked to ensure no stack overflow. The virtual memory space is cleaned up, if needed, as well as the current working directory. Then the number of active threads is decreased and the is_zombie field is set to 1 because the process is exiting. Next, a pointer to the parent process is found by searching for the child’s ppid using the getProcess() helper function. The child_exit_status and child_pid fields of the parent process are updated with the child’s exit status and the child’s pid, respectively. The child then removes itself from the process table. If there is a parent waiting on this process from waitpid(), a pointer to that parent will be held in the waitingParent field of the child process. If there is a parent waiting, the parent is woken up. Then the child process is switched to a ZOMB state using mi_switch.
+
+
+
+
+PROS AND CONS 
+
+
+Pros: 
+- The system will not panic and will return appropriate error codes when needed 
+- System is relatively simple 
+- It makes use of the thread structure, limiting the extra code needed and increasing maintainability 
+- Array is used to track procTable, which is simpler than using something like a linked list. This increases the understandability and maintainability of the system. 
+- PIDs of processes that have exited and their codes have been checked by their parent are available for reuse.
+
+
+Cons: 
+- We are using the thread structure as the process. This works only as long as it is a 1:1 system. If the system type changes, there needs to be synchronization and a separate structure/method for managing processes. 
+- We use thread_yield() once in menu.c which is busy waiting (but doesn’t take much time) 
+- Array is used to track procTable, which is simpler than using something like a linked list. This may limit the flexibility of the table. 
+
+
+
+
+APPROACHES CONSIDERED 
+
+
+We originally thought about making a new structure and helper function for creating and managing the processes. In beginning the implementation, we discovered that this would add complexity and because this is a 1:1 system, we would essentially be re-writing code that was already written in thread.c. 
+
+
+When thinking about the procTable, we initially considered a linked list structure. This would give more control over the number of processes. Since adding and removing a process would have been more complex than doing it in an array, we chose to go with an array. The benefit to doing the array is that we could link the new pid number to where the process is in the array (the pid is the index + 1). If we did a linked list, we would need to come up with a different way to generate new pids and track the ones that are available for reuse. 
+
+
+In waitpid() the parent needs to wait for the child to finish executing before checking the exit code. Initially, we used thread_yield() to allow the parent to wait for the child. However, this is busy waiting because the parent is constantly checking to see if the child is done. We changed this to a sleep/wake method to avoid the busy waiting. The parent checks its child_exit_status field. If it is -1, the child has not exited yet and the parent goes to sleep. The child wakes the parent in therad_exit() right before they are switched to ZOMB state. 
+
+
+Originally in functions that return -1 on an error (like waitpid()), we were returning the error code directly. However, for these functions, -1 needs to be returned and the error needs to be sent to syscall.c in a different way. We went back and forth about what method to use. One potential way is to have a pointer in the parameters of the function. The pointer is set with the error code in the function if an error occurs. This pointer can then be accessed by the caller to get the error code. Another method is to add an error field to the thread structure. In the function, when an error occurs, the error field is updated to the error code. This code can then be accessed in syscall.c as a field of the current thread. We ultimately decided to go with the second method because it is clear which process the error occurred with.

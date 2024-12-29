@@ -1,0 +1,67 @@
+PA1, Part 1 --  Code Reading Questions 
+
+1. What happens to a thread when it exits (i.e., calls thread_exit())? What about when it sleeps? 
+
+When a thread called thread_exit(), it causes the current thread to exit. When a thread exits the parts of the thread we don't actually 
+need to get cleaned up right away. The rest has to wait until thread_destroy gets called from exorcise(). When a thread sleeps, it yields 
+(give up the CPU) to the next runnable thread. It then goes to sleep until wakeup() is called on the same address. 
+
+
+2. What function(s) handle(s) a context switch? 
+
+md_switch(struct pcb *old, struct pcb *nu) – machine dependent context switch 
+mi_switch(threadstate_t, nextstate) – high level, machine-independent context switch 
+
+
+3. What does it mean for a thread to be in each of the possible thread states? 
+
+S_RUN → a thread that is currently running  
+S_READY → a thread that is ready to run and is in the ready queue 
+S_SLEEP → a sleeping thread 
+S_ZOMB → a zombie thread whose parent terminated without calling the results of this child 
+
+
+4. What does it mean to turn interrupts off? How is this accomplished? Why is it important to turn off interrupts in the thread subsystem code? 
+
+When interrupts are turned off, when an interrupt is sent, it does not trigger the handler. Interrupts are turned off by setting the spl level 
+to splhigh(). Turning off the interrupts is important in the thread subsystem code because it will prevent important tasks from being interrupted 
+mid-execution (such as context switching, printing the run queue, updating the thread counter, forking and thread termination). If they were 
+interrupted it could cause race conditions, loss/corruption of data, inconsistent state etc. 
+
+
+5. What happens when a thread wakes up another thread? How does a sleeping thread get to run again? 
+
+When a thread wakes up another thread, the thread that was sleeping will become runnable again and go back into the ready queue. 
+
+
+6. What function is responsible for choosing the next thread to run?
+
+struct thread *scheduler(void) is responsible for the next thread to run.
+
+
+7. How does that function pick the next thread?
+
+The scheduler is a round-robin run queue. When the current thread times out, it moves to the end of the ready queue (if it didn’t terminate). 
+The scheduler picks the next thread in the queue as the next thread to run. No prioritization. The scheduler() calls the cpu_idle() recursively 
+until the run queue is empty.
+
+
+8. What role does the hardware timer play in scheduling? What hardware independent function is called on a timer interrupt? 
+
+The function hardclock() is called on a timer interrupt. At the end of the function, thread_yield() is called which causes a context switch. 
+
+
+9. Describe how thread_sleep() and thread_wakeup() are used to implement semaphores. What is the purpose of the argument passed to thread_sleep()? 
+
+When a semaphore calls wait(), it checks the value and tries to acquire the semaphore. If the value is 0, the thread that called wait will be put 
+to sleep using thread_sleep(). When another thread calls V() (same as signal()) to indicate they are releasing the resource, thread_wakeup() will 
+be called on the sleeping thread so it can use the resource and continue executing. The argument passed into thread_sleep() is the address of the 
+thread that is going to sleep. When thread_wakeup() is called on the same address, that same thread will wake up. The address is used as the 
+identifier. 
+
+
+10. Why does the lock API in OS/161 provide lock_do_i_hold(), but not lock_get_holder()?
+
+The function lock_do_i_hold() returns 0 if the calling thread does not hold the lock and 1 if it does. Only the holding thread can release the 
+lock. If there was a lock_get_holder() function, it would return which thread is holding the lock. However, this information would be useless 
+because only the holding thread can release the lock. 

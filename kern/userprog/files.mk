@@ -1,0 +1,1 @@
+SRCS-y += loadelf.c runprogram.c uio.c getpid.c getppid.c fork.c execv.c waitpid.c exit.c 

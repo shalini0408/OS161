@@ -1,0 +1,86 @@
+Script started on 2024-12-08 20:19:24-05:00
+bash-4.4$ cd root
+bash-4.4$ sys161 kernel
+sys161: System/161 release 2.0.8, compiled Jan 10 2022 16:03:24
+
+OS/161 base system version 1.11gmu
+Copyright (c) 2000, 2001, 2002, 2003
+   President and Fellows of Harvard College.  All rights reserved.
+
+Put-your-group-name-here's system version 0 (ASST2 #547)
+
+Cpu is MIPS r2000/r3000
+1864k physical memory available
+Device probe...
+lamebus0 (system main bus)
+emu0 at lamebus0
+ltimer0 at lamebus0
+hardclock on ltimer0 (100 hz)
+beep0 at ltimer0
+rtclock0 at ltimer0
+lrandom0 at lamebus0
+random0 at lrandom0
+lhd0 at lamebus0
+lhd1 at lamebus0
+lser0 at lamebus0
+con0 at lser0
+pseudorand0 (virtual)
+
+Hello World
+OS/161 kernel [? for menu]: ?
+
+OS/161 kernel menu
+    [?o] Operations menu                [kh] Kernel heap stats              
+    [?t] Tests menu                     [q] Quit and shut down              
+
+Operation took 0.048043000 seconds
+OS/161 kernel [? for menu]: ?t
+
+OS/161 tests menu
+    [at]  Array test                    [sy1] Semaphore test                
+    [bt]  Bitmap test                   [sy2] Lock test             (1)     
+    [qt]  Queue test                    [sy3] CV test               (1)     
+    [km1] Kernel malloc test            [fs1] Filesystem test               
+    [km2] kmalloc stress test           [fs2] FS read stress        (4)     
+    [tt1] Thread test 1                 [fs3] FS write stress       (4)     
+    [tt2] Thread test 2                 [fs4] FS write stress 2     (4)     
+    [tt3] Thread test 3                 [fs5] FS create stress      (4)     
+
+    (1) These tests will fail until you finish the synch assignment.
+    (4) These tests will fail until you finish the file system assignment.
+
+Operation took 0.218168080 seconds
+OS/161 kernel [? for menu]: tt1
+Starting thread test...
+022222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222233333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333344444444444444444445555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555550000000000000000000000000000000000000000000000011111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111166666666666666666777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444440000000000000000000000006666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666000000000000000000000000000000000000000000000000
+Thread test done.
+Operation took 0.549064840 seconds
+OS/161 kernel [? for menu]: tt2
+Starting thread test 2...
+0123456701456723
+Thread test 2 done.
+Operation took 0.668699280 seconds
+OS/161 kernel [? for menu]: tt3
+Starting thread test 3 (5 [sleepalots], 2 {computes}, 1 waker)
+[3][2][4][3]{1: 85}{0: 130}[0][4][1][2][3][4][2][3][0]{1: 222}{0: 99}[1][3][2][0][4][1][2]{1: 227}{0: 204}[4][0][2][1][0]{1: 65}[2]{0: 189}[4][0][1][3][4][2][0]{1: 27}{0: 219}[4][3][1][2][1][4][2]{1: 61}[3]{0: 51}[1][0][2][4][1][3][2][0]{1: 120}[4]{0: 3}[2][1][3][4][1]{1: 214}[2]{0: 20}[0][2][3][1][4][0]{1: 215}[4][2]{0: 28}[1][4][2]{1: 83}[3][0]{0: 80}[2][1][3][4][0][2][4][1][3][2][1][0][4][3][3][1][0][4][3][4][0][3][1][3][1][0][3][1][0][0][0]
+Thread test 3 done
+Operation took 13.983967200 seconds
+OS/161 kernel [? for menu]: p /sbin/poweroff
+Shutting down.
+scheduler: Dropping thread <boot/menu>.
+panic: Fatal exception 2 (TLB miss on load) in kernel mode
+panic: EPC 0x8000fbe4, exception vaddr 0x0
+panic: Fatal exception 2 (TLB miss on load) in kernel mode
+panic: EPC 0x8000fbe4, exception vaddr 0x0
+panic: I can't handle this... I think I'll just die now...
+panic: Fatal exception 2 (TLB miss on load) in kernel mode
+panic: EPC 0x8000fbe4, exception vaddr 0x0
+sys161: 486488389801 cycles (81511301676 run, 404977088125 global-idle)
+sys161:   cpu0: 3006752011 kern, 20 user, 0 idle; 0 ll, 0/0 sc, 0 sync
+sys161: 1627277 irqs 9 exns 0r/0w disk 34r/3895w console 8r/0w/3m emufs 0r/0w net
+sys161: Elapsed real time: 75.161755 seconds (6472.55 mhz)
+sys161: Elapsed virtual time: 16319.389539094 seconds (25 mhz)
+bash-4.4$ exit
+exit
+
+Script done on 2024-12-08 20:21:46-05:00

@@ -1,0 +1,115 @@
+Kaitlin O'Leary 
+Shalini Maknoor
+
+PA1, Part 2 -- Design Document
+
+1. High-level overview of the solution
+
+Our solution implements a priority queue for each route, a priority sleeping queue for each route, as well as a counter that keeps track of 
+finished vehicles. When a vehicle approaches, it is added to the priority queue that corresponds to its route. A lock is used to add the vehicle 
+to the queue. The vehicle then checks if it is at the head of the queue. If it is, it executes its turn. If it isn’t, it adds itself to the 
+sleeping queue for its route and goes to sleep. It will be woken up by a thread when it is the next vehicle in the queue (i.e. when it is the 
+head of the queue). After waking, it will dequeue from the sleeping queue and execute its turn. After turning, it will remove itself from the 
+priority queue for its route and wake the thread that is now at the head of the queue. Last, it will increment vehicle_count, which keeps track 
+of the number of vehicles that are finished. Lock are used throughout to protect the priority queue, sleeping queue, and vehicle_count. After all 
+vehicles have finished (i.e. when vehicle_count is equal to vehicles_finished are equal), finish() is called. 
+
+vehicle_thread():
+When a vehicle approaches a particular route, it is added to the priority queue for that route. This ensures that cars will always be prioritized 
+over trucks. A lock is used to ensure only one thread is editing the priority queue at a time. If the thread is next to enter the intersection 
+(i.e. it is the head of the queue), it executes its turn. If the vehicle is not next (i.e. it is not the head of the queue), the vehicle is added 
+to the sleep queue (a different lock is used to protect the sleeping queue). After sleeping, it dequeues itself from the sleeping queue 
+(again, using a lock), executes its turn and leaves the intersection. It then wakes up the vehicle that is next in the priority queue 
+(i.e. the one at the head of the queue). Lastly, vehicle_count, that keeps track of the number of vehicles that have finished, is incremented. 
+
+turn_left()
+Before turning, the vehicle acquires the two locks that are on its route (AB and BC for route A, BC and CA for route B, and AB and CA for route C).
+It then enters the intersection and goes through the first section, transfers into the next section, and removes itself from the priority queue 
+(using a lock to ensure only one thread edits the queue at once). It then releases the first section’s lock, leaves the intersection, and then 
+releases the second section’s lock. This is to help prevent deadlock. 
+
+turn_right() 
+Before turning, the vehicle acquires the lock on its route (AB for route A, BC for route B, and CA for route C). It then enters the intersection. 
+The vehicle is removed from the priority queue (using a lock to ensure only one thread edits the queue at a time), leaves the intersection, and 
+releases the lock. 
+
+stoplight_driver():
+In the driver, all the locks necessary are initialized. Then all the vehicle threads are created. A while loop is used to wait until all vehicles 
+are finished. Finish is then called and all locks are destroyed. 
+
+
+2. How many locks you used in your program and for what purpose(s)
+
+We used 10 locks in our implementation: 
+
+vehicle_count_lock: 
+This lock protects the global variable called vehicle_count that keeps track of the number of finished vehicles. The driver uses this variable to 
+determine if all vehicles have finished. The lock is used when vehicle_count is incremented in the vehicle_thread() function and when the number 
+of finished vehicles is checked in the stoplight_driver() function.
+
+intersection_AB_lock: 
+This lock protects the AB section of the intersection. It is locked whenever a vehicle enters this section and unlocked when it leaves. 
+
+intersection_BC_lock: 
+This lock protects the BC section of the intersection. It is locked whenever a vehicle enters this section and unlocked when it leaves. 
+
+intersection_CA_lock: 
+This lock protects the CA section of the intersection. It is locked whenever a vehicle enters this section and unlocked when it leaves. 
+
+routeA_LL_Lock: 
+This lock protects the linked list that is the priority queue for route A. This lock is used whenever a vehicle is added during approach(), 
+removed during leave(), or whenever the queue or head of the queue is checked. 
+
+routeB_LL_Lock: 
+This lock protects the linked list that is the priority queue for route B. This lock is used whenever a vehicle is added during approach(), 
+removed during leave(), or whenever the queue or head of the queue is checked. 
+
+routeC_LL_Lock: 
+This lock protects the linked list that is the priority queue for route C. This lock is used whenever a vehicle is added during approach(), 
+removed during leave(), or whenever the queue or head of the queue is checked. 
+
+sleep_A_lock: 
+This lock protects the linked list that is the sleeping queue for route A. It is used whenever a vehicle is added before it sleeps and when it is 
+removed after it is woken up. It is also used when this queue is checked. 
+
+sleep_B_lock: 
+This lock protects the linked list that is the sleeping queue for route B. It is used whenever a vehicle is added before it sleeps and when it is 
+removed after it is woken up. It is also used when this queue is checked. 
+
+sleep_C_lock: 
+This lock protects the linked list that is the sleeping queue for route C. It is used whenever a vehicle is added before it sleeps and when it is 
+removed after it is woken up. It is also used when this queue is checked. 
+
+
+3. How you achieved the objective of giving high-priority to cars (compared to trucks); explain what type of data structures and synchronization 
+primitives you used for that purpose
+
+For each route, we have a linked list that functions as a priority queue. When a car approaches, it is added to the priority queue (using a lock 
+to ensure only one thread edits the queue at a time). If there are no vehicles in the queue, it is added as the head. If there are only cars in 
+the queue, it is added at the end of the list. If there are trucks in the queue, the car is inserted right before the first truck in the list 
+(so it is after all the cars and before the trucks). This means the head of the queue is always the vehicle that should enter the intersection on 
+that route next. 
+
+When a truck approaches, it is added to the priority queue (using a lock to ensure only one thread edits the queue at a time). If there are no 
+vehicles in the queue, it is added as the head. If there are any vehicles (trucks or cars or a combination), it is added to the end of the queue. 
+This is because trucks have a lower priority than cars. 
+
+For each of these linked lists, we have a lock that protects it so only one thread is editing the linked list at a time. The order of the list 
+ensures that cars that have approached will go before trucks and vehicles of the same type will go in the order in which they approached. 
+
+
+4. Specific rules you implemented to admit, suspend, and wake up a vehicle thread, approaching the intersection from a specific lane: you may want to list separate cases you considered.
+
+Admitting a vehicle: 
+When a vehicle approaches an intersection, it is inserted into the linked list that functions as the priority queue for that route (using a lock 
+to ensure only one thread can edit the queue at a time). When that vehicle is at the head of the queue, it is the vehicle that will enter next on 
+that route. This ensures that cars are prioritized over trucks and vehicles of the same type enter in the order they approached. 
+
+Suspending/Sleeping a vehicle: 
+After a vehicle approaches the intersection, it checks if it is the head of the priority queue. If it is, it enters the intersection. If it isn’t, 
+it enqueues itself to the sleeping queue for that route (using a lock to ensure only one thread can edit the queue at a time). Interrupts are then 
+disabled and the thread goes to sleep. When the thread wakes up, it dequeues itself from the sleeping queue (using a lock to ensure only one 
+thread can edit the queue at a time) and re-enables interrupts. Interrupts are disabled so that sleeping and dequeuing are atomic. 
+
+Waking up a vehicle:
+After a vehicle finishes turning and leaves the intersection, it wakes up the next thread, which is the thread at the head of the priority queue. 

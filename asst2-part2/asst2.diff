@@ -1,0 +1,3901 @@
+diff --git a/.vscode/c_cpp_properties.json b/.vscode/c_cpp_properties.json
+new file mode 100644
+index 0000000..909ecd0
+--- /dev/null
++++ b/.vscode/c_cpp_properties.json
+@@ -0,0 +1,17 @@
++{
++    "configurations": [
++        {
++            "name": "Linux",
++            "includePath": [
++                "${workspaceFolder}/**",
++                "${workspaceFolder}/kern"
++            ],
++            "defines": [],
++            "compilerPath": "/usr/bin/clang",
++            "cStandard": "c17",
++            "cppStandard": "c++17",
++            "intelliSenseMode": "linux-clang-x64"
++        }
++    ],
++    "version": 4
++}
+\ No newline at end of file
+diff --git a/.vscode/settings.json b/.vscode/settings.json
+index 48edd87..177db02 100644
+--- a/.vscode/settings.json
++++ b/.vscode/settings.json
+@@ -4,6 +4,21 @@
+         "types.h": "c",
+         "stoplight_framework.h": "c",
+         "thread.h": "c",
+-        "tuple": "c"
++        "tuple": "c",
++        "processes.h": "c",
++        "curthread.h": "c",
++        "pcb.h": "c",
++        "vnode.h": "c",
++        "addrspace.h": "c",
++        "lib.h": "c",
++        "*.tcc": "c",
++        "chrono": "c",
++        "functional": "c",
++        "string.h": "c",
++        "errno.h": "c",
++        "array.h": "c",
++        "synch.h": "c",
++        "spl.h": "c",
++        "cstdlib": "c"
+     }
+ }
+\ No newline at end of file
+diff --git a/asst1-part2/asst1.diff b/asst1-part2/asst1.diff
+new file mode 100644
+index 0000000..72d4044
+--- /dev/null
++++ b/asst1-part2/asst1.diff
+@@ -0,0 +1,1501 @@
++diff --git a/.vscode/settings.json b/.vscode/settings.json
++new file mode 100644
++index 0000000..48edd87
++--- /dev/null
+++++ b/.vscode/settings.json
++@@ -0,0 +1,9 @@
+++{
+++    "files.associations": {
+++        "test.h": "c",
+++        "types.h": "c",
+++        "stoplight_framework.h": "c",
+++        "thread.h": "c",
+++        "tuple": "c"
+++    }
+++}
++\ No newline at end of file
++diff --git a/asst1-part1/code-reading.txt b/asst1-part1/code-reading.txt
++new file mode 100644
++index 0000000..32757b5
++--- /dev/null
+++++ b/asst1-part1/code-reading.txt
++@@ -0,0 +1,67 @@
+++PA1, Part 1 --  Code Reading Questions 
+++
+++1. What happens to a thread when it exits (i.e., calls thread_exit())? What about when it sleeps? 
+++
+++When a thread called thread_exit(), it causes the current thread to exit. When a thread exits the parts of the thread we don't actually 
+++need to get cleaned up right away. The rest has to wait until thread_destroy gets called from exorcise(). When a thread sleeps, it yields 
+++(give up the CPU) to the next runnable thread. It then goes to sleep until wakeup() is called on the same address. 
+++
+++
+++2. What function(s) handle(s) a context switch? 
+++
+++md_switch(struct pcb *old, struct pcb *nu) – machine dependent context switch 
+++mi_switch(threadstate_t, nextstate) – high level, machine-independent context switch 
+++
+++
+++3. What does it mean for a thread to be in each of the possible thread states? 
+++
+++S_RUN → a thread that is currently running  
+++S_READY → a thread that is ready to run and is in the ready queue 
+++S_SLEEP → a sleeping thread 
+++S_ZOMB → a zombie thread whose parent terminated without calling the results of this child 
+++
+++
+++4. What does it mean to turn interrupts off? How is this accomplished? Why is it important to turn off interrupts in the thread subsystem code? 
+++
+++When interrupts are turned off, when an interrupt is sent, it does not trigger the handler. Interrupts are turned off by setting the spl level 
+++to splhigh(). Turning off the interrupts is important in the thread subsystem code because it will prevent important tasks from being interrupted 
+++mid-execution (such as context switching, printing the run queue, updating the thread counter, forking and thread termination). If they were 
+++interrupted it could cause race conditions, loss/corruption of data, inconsistent state etc. 
+++
+++
+++5. What happens when a thread wakes up another thread? How does a sleeping thread get to run again? 
+++
+++When a thread wakes up another thread, the thread that was sleeping will become runnable again and go back into the ready queue. 
+++
+++
+++6. What function is responsible for choosing the next thread to run?
+++
+++struct thread *scheduler(void) is responsible for the next thread to run.
+++
+++
+++7. How does that function pick the next thread?
+++
+++The scheduler is a round-robin run queue. When the current thread times out, it moves to the end of the ready queue (if it didn’t terminate). 
+++The scheduler picks the next thread in the queue as the next thread to run. No prioritization. The scheduler() calls the cpu_idle() recursively 
+++until the run queue is empty.
+++
+++
+++8. What role does the hardware timer play in scheduling? What hardware independent function is called on a timer interrupt? 
+++
+++The function hardclock() is called on a timer interrupt. At the end of the function, thread_yield() is called which causes a context switch. 
+++
+++
+++9. Describe how thread_sleep() and thread_wakeup() are used to implement semaphores. What is the purpose of the argument passed to thread_sleep()? 
+++
+++When a semaphore calls wait(), it checks the value and tries to acquire the semaphore. If the value is 0, the thread that called wait will be put 
+++to sleep using thread_sleep(). When another thread calls V() (same as signal()) to indicate they are releasing the resource, thread_wakeup() will 
+++be called on the sleeping thread so it can use the resource and continue executing. The argument passed into thread_sleep() is the address of the 
+++thread that is going to sleep. When thread_wakeup() is called on the same address, that same thread will wake up. The address is used as the 
+++identifier. 
+++
+++
+++10. Why does the lock API in OS/161 provide lock_do_i_hold(), but not lock_get_holder()?
+++
+++The function lock_do_i_hold() returns 0 if the calling thread does not hold the lock and 1 if it does. Only the holding thread can release the 
+++lock. If there was a lock_get_holder() function, it would return which thread is holding the lock. However, this information would be useless 
+++because only the holding thread can release the lock. 
++diff --git a/asst1-part1/progress-report.txt b/asst1-part1/progress-report.txt
++new file mode 100644
++index 0000000..d349fcb
++--- /dev/null
+++++ b/asst1-part1/progress-report.txt
++@@ -0,0 +1,47 @@
+++PA1, Part 1 -- Progress Report 
+++
+++Kaitlin O’Leary G01372290
+++Shalini Maknoor G01503797
+++
+++
+++Lock Design and Implementation 
+++
+++- Took the semaphores code and used it as a model for the lock implementation. 
+++- We had four functions for the lock implementation. Each partner implemented two functions. 
+++- We then tested the complete implementation together using Zeus. 
+++
+++
+++Problems Encountered 
+++
+++- We had many syntax errors as we did our first implementation. 
+++- We continuously modified our logic. 
+++- When we tested in Zeus, we encountered a kernel hang. Together, we commented out each function and methodically tested each one. We did not 
+++initialize the flag value in the lock creation function and we accidentally set the lock flag to 0 in lock_acquire() instead of 1. 
+++- After fixing the issues above, we tested with the menu and got the correct implementation (see screenshot below). 
+++
+++
+++Correct lock implementation shows: 
+++
+++sy2
+++Starting lock test...
+++Lock test done.
+++Operation took 2.988475840 seconds 
+++
+++At this point, we have the project files set up, the lock implementation complete. We are now about to start the design and implementation of 
+++the traffic management problem. 
+++
+++
+++Traffic Management Problem Findings 
+++
+++- Our critical section will be the intersection. The critical section will be different parts of the intersection depending on what route 
+++the vehicle is taking.  
+++- Use a priority queue (implemented as a dynamic max heap) for each route so that cars will be prioritized over trucks and cars that arrive 
+++first will enter the intersection first (FIFO). 
+++- When turning right, a vehicle only needs to pass through one intersection. The thread (that is the vehicle) will try to acquire the lock for 
+++the corner of the intersection they go through. They will either execute the turn or sleep and keep checking if the lock is free. 
+++- When turning left, there are two parts of the intersection the vehicle needs to go through. The thread will check the first part of the 
+++intersection first. If it is free, it will acquire that lock. If not it will sleep, and then keep checking. Once it has the first lock, it will 
+++pass through the first part of the intersection. It will then try to acquire the second lock. If it is free, it will release the first lock and 
+++acquire the second lock and execute the remainder of the turn. If it is not free, it will sleep and check until it can acquire the lock.
+++- We are concerned this solution might cause starvation among the cars. If a car is waiting for the second lock to turn left, no other cars can 
+++use the first lock. This may cause excessive bounded waiting. 
++diff --git a/kern/asst1/asst1.code-workspace b/kern/asst1/asst1.code-workspace
++new file mode 100644
++index 0000000..437ac53
++--- /dev/null
+++++ b/kern/asst1/asst1.code-workspace
++@@ -0,0 +1,11 @@
+++{
+++	"folders": [
+++		{
+++			"path": "."
+++		},
+++		{
+++			"path": ".."
+++		}
+++	],
+++	"settings": {}
+++}
++\ No newline at end of file
++diff --git a/kern/asst1/design.txt b/kern/asst1/design.txt
++new file mode 100644
++index 0000000..85fdcaa
++--- /dev/null
+++++ b/kern/asst1/design.txt
++@@ -0,0 +1,115 @@
+++Kaitlin O'Leary 
+++Shalini Maknoor
+++
+++PA1, Part 2 -- Design Document
+++
+++1. High-level overview of the solution
+++
+++Our solution implements a priority queue for each route, a priority sleeping queue for each route, as well as a counter that keeps track of 
+++finished vehicles. When a vehicle approaches, it is added to the priority queue that corresponds to its route. A lock is used to add the vehicle 
+++to the queue. The vehicle then checks if it is at the head of the queue. If it is, it executes its turn. If it isn’t, it adds itself to the 
+++sleeping queue for its route and goes to sleep. It will be woken up by a thread when it is the next vehicle in the queue (i.e. when it is the 
+++head of the queue). After waking, it will dequeue from the sleeping queue and execute its turn. After turning, it will remove itself from the 
+++priority queue for its route and wake the thread that is now at the head of the queue. Last, it will increment vehicle_count, which keeps track 
+++of the number of vehicles that are finished. Lock are used throughout to protect the priority queue, sleeping queue, and vehicle_count. After all 
+++vehicles have finished (i.e. when vehicle_count is equal to vehicles_finished are equal), finish() is called. 
+++
+++vehicle_thread():
+++When a vehicle approaches a particular route, it is added to the priority queue for that route. This ensures that cars will always be prioritized 
+++over trucks. A lock is used to ensure only one thread is editing the priority queue at a time. If the thread is next to enter the intersection 
+++(i.e. it is the head of the queue), it executes its turn. If the vehicle is not next (i.e. it is not the head of the queue), the vehicle is added 
+++to the sleep queue (a different lock is used to protect the sleeping queue). After sleeping, it dequeues itself from the sleeping queue 
+++(again, using a lock), executes its turn and leaves the intersection. It then wakes up the vehicle that is next in the priority queue 
+++(i.e. the one at the head of the queue). Lastly, vehicle_count, that keeps track of the number of vehicles that have finished, is incremented. 
+++
+++turn_left()
+++Before turning, the vehicle acquires the two locks that are on its route (AB and BC for route A, BC and CA for route B, and AB and CA for route C).
+++It then enters the intersection and goes through the first section, transfers into the next section, and removes itself from the priority queue 
+++(using a lock to ensure only one thread edits the queue at once). It then releases the first section’s lock, leaves the intersection, and then 
+++releases the second section’s lock. This is to help prevent deadlock. 
+++
+++turn_right() 
+++Before turning, the vehicle acquires the lock on its route (AB for route A, BC for route B, and CA for route C). It then enters the intersection. 
+++The vehicle is removed from the priority queue (using a lock to ensure only one thread edits the queue at a time), leaves the intersection, and 
+++releases the lock. 
+++
+++stoplight_driver():
+++In the driver, all the locks necessary are initialized. Then all the vehicle threads are created. A while loop is used to wait until all vehicles 
+++are finished. Finish is then called and all locks are destroyed. 
+++
+++
+++2. How many locks you used in your program and for what purpose(s)
+++
+++We used 10 locks in our implementation: 
+++
+++vehicle_count_lock: 
+++This lock protects the global variable called vehicle_count that keeps track of the number of finished vehicles. The driver uses this variable to 
+++determine if all vehicles have finished. The lock is used when vehicle_count is incremented in the vehicle_thread() function and when the number 
+++of finished vehicles is checked in the stoplight_driver() function.
+++
+++intersection_AB_lock: 
+++This lock protects the AB section of the intersection. It is locked whenever a vehicle enters this section and unlocked when it leaves. 
+++
+++intersection_BC_lock: 
+++This lock protects the BC section of the intersection. It is locked whenever a vehicle enters this section and unlocked when it leaves. 
+++
+++intersection_CA_lock: 
+++This lock protects the CA section of the intersection. It is locked whenever a vehicle enters this section and unlocked when it leaves. 
+++
+++routeA_LL_Lock: 
+++This lock protects the linked list that is the priority queue for route A. This lock is used whenever a vehicle is added during approach(), 
+++removed during leave(), or whenever the queue or head of the queue is checked. 
+++
+++routeB_LL_Lock: 
+++This lock protects the linked list that is the priority queue for route B. This lock is used whenever a vehicle is added during approach(), 
+++removed during leave(), or whenever the queue or head of the queue is checked. 
+++
+++routeC_LL_Lock: 
+++This lock protects the linked list that is the priority queue for route C. This lock is used whenever a vehicle is added during approach(), 
+++removed during leave(), or whenever the queue or head of the queue is checked. 
+++
+++sleep_A_lock: 
+++This lock protects the linked list that is the sleeping queue for route A. It is used whenever a vehicle is added before it sleeps and when it is 
+++removed after it is woken up. It is also used when this queue is checked. 
+++
+++sleep_B_lock: 
+++This lock protects the linked list that is the sleeping queue for route B. It is used whenever a vehicle is added before it sleeps and when it is 
+++removed after it is woken up. It is also used when this queue is checked. 
+++
+++sleep_C_lock: 
+++This lock protects the linked list that is the sleeping queue for route C. It is used whenever a vehicle is added before it sleeps and when it is 
+++removed after it is woken up. It is also used when this queue is checked. 
+++
+++
+++3. How you achieved the objective of giving high-priority to cars (compared to trucks); explain what type of data structures and synchronization 
+++primitives you used for that purpose
+++
+++For each route, we have a linked list that functions as a priority queue. When a car approaches, it is added to the priority queue (using a lock 
+++to ensure only one thread edits the queue at a time). If there are no vehicles in the queue, it is added as the head. If there are only cars in 
+++the queue, it is added at the end of the list. If there are trucks in the queue, the car is inserted right before the first truck in the list 
+++(so it is after all the cars and before the trucks). This means the head of the queue is always the vehicle that should enter the intersection on 
+++that route next. 
+++
+++When a truck approaches, it is added to the priority queue (using a lock to ensure only one thread edits the queue at a time). If there are no 
+++vehicles in the queue, it is added as the head. If there are any vehicles (trucks or cars or a combination), it is added to the end of the queue. 
+++This is because trucks have a lower priority than cars. 
+++
+++For each of these linked lists, we have a lock that protects it so only one thread is editing the linked list at a time. The order of the list 
+++ensures that cars that have approached will go before trucks and vehicles of the same type will go in the order in which they approached. 
+++
+++
+++4. Specific rules you implemented to admit, suspend, and wake up a vehicle thread, approaching the intersection from a specific lane: you may want to list separate cases you considered.
+++
+++Admitting a vehicle: 
+++When a vehicle approaches an intersection, it is inserted into the linked list that functions as the priority queue for that route (using a lock 
+++to ensure only one thread can edit the queue at a time). When that vehicle is at the head of the queue, it is the vehicle that will enter next on 
+++that route. This ensures that cars are prioritized over trucks and vehicles of the same type enter in the order they approached. 
+++
+++Suspending/Sleeping a vehicle: 
+++After a vehicle approaches the intersection, it checks if it is the head of the priority queue. If it is, it enters the intersection. If it isn’t, 
+++it enqueues itself to the sleeping queue for that route (using a lock to ensure only one thread can edit the queue at a time). Interrupts are then 
+++disabled and the thread goes to sleep. When the thread wakes up, it dequeues itself from the sleeping queue (using a lock to ensure only one 
+++thread can edit the queue at a time) and re-enables interrupts. Interrupts are disabled so that sleeping and dequeuing are atomic. 
+++
+++Waking up a vehicle:
+++After a vehicle finishes turning and leaves the intersection, it wakes up the next thread, which is the thread at the head of the priority queue. 
++diff --git a/kern/asst1/exercises.txt b/kern/asst1/exercises.txt
++new file mode 100644
++index 0000000..5a2f0c5
++--- /dev/null
+++++ b/kern/asst1/exercises.txt
++@@ -0,0 +1,25 @@
+++Kaitlin O'Leary
+++Shalini Maknoor
+++
+++PA1, Part 2 -- Exercise Questions 
+++
+++1. Assume that the residents of Podunk are exceptional and follow the old (and widely ignored) convention that whoever arrives at the intersection 
+++first proceeds first. Using the language of synchronization primitives describe the way this intersection is controlled. In what ways is this 
+++method suboptimal?
+++
+++In this model of the intersection, only one vehicle is in the intersection at a time. This means the entire intersection is the critical section 
+++that is protected by only one lock. This allows only one vehicle into the intersection at a time. The next vehicle cannot go until the first 
+++vehicle leaves and unlocks the intersection. Additionally, there is no concurrency in this model. For example, if a car from Route A approaches 
+++first and is turning right, no other car can enter the intersection, even if it wouldn’t crash into the car turning right (if it was turning right 
+++from route B, for example). Lastly, there is a large amount of waiting because there is only one lock for the entire intersection. 
+++
+++2. Now, assume that the residents of Podunk are like most people and do not follow the convention described above. In what one instance can this 
+++three-way-stop intersection produce a deadlock? (It will be helpful to think of this in terms of the model we are using instead of trying to 
+++visualize an actual intersection).
+++
+++An example that causes deadlock is when a vehicle from each route is trying to turn left all at the same time. The vehicle from route A will 
+++acquire lock AB, the vehicle from route B will acquire BC, and the vehicle from route C will acquire lock CA. Because each vehicle holds a lock, 
+++they will be eternally waiting for the other lock that is already held by another vehicle. None of them can ever acquire the second lock, so no 
+++vehicle will ever complete the turn. 
+++
+++	
++diff --git a/kern/asst1/stoplight.c b/kern/asst1/stoplight.c
++index 073ed3c..6ee8794 100644
++--- a/kern/asst1/stoplight.c
+++++ b/kern/asst1/stoplight.c
++@@ -10,7 +10,6 @@
++  * Includes
++  *
++  */
++-
++ #include "stoplight_framework.h"
++ 
++ #include <types.h>
++@@ -19,6 +18,49 @@
++ #include <thread.h>
++ 
++ 
+++#include <synch.h> 
+++#include <machine/spl.h>
+++
+++/*GLOBAL VARIABLES*/
+++//intersection locks 
+++struct lock *intersection_AB_Lock; 
+++struct lock *intersection_BC_Lock; 
+++struct lock *intersection_CA_Lock ; 
+++
+++//Route LL locks 
+++struct lock *routeA_LL_Lock ; 
+++struct lock *routeB_LL_Lock; 
+++struct lock *routeC_LL_Lock; 
+++
+++//node struct 
+++struct Node {
+++	long unsigned int vehicle; 
+++	struct Node* next; 
+++};
+++
+++//Route LL head nodes 
+++struct Node *head_A = NULL; 
+++struct Node *head_B = NULL; 
+++struct Node *head_C = NULL; 
+++
+++	/* data */
+++int vehicles_finished = 0;
+++struct lock *vehicle_count_lock;
+++
+++//sleeping queue LL head nodes 
+++struct Node *sleep_head_A = NULL; 
+++struct Node *sleep_head_B = NULL; 
+++struct Node *sleep_head_C = NULL; 
+++
+++//sleeping queue locks 
+++struct lock *sleep_A_lock; 
+++struct lock *sleep_B_lock; 
+++struct lock *sleep_C_lock; 
+++
+++//sleeping queue function headers 
+++void enqueue(struct Node **sleep_head, unsigned long int vehiclenumber);
+++void dequeue(unsigned long int vehiclenumber, struct Node **sleep_head);
+++
++ /*
++  *
++  * Function Definitions
++@@ -40,18 +82,110 @@
++  *      Write and comment this function.
++  */
++ 
++-static
++ void
++ turn_left(unsigned long vehiclenumber)
++ {
++-	/*
++-	 * Avoid unused variable warnings.
++-	 */
+++	//get vehicle route 
+++	int route = get_vehicle_route(vehiclenumber);
++ 
++-	(void) vehiclenumber;
+++	//Intersection AB - BC
+++	if(route == 0){
+++		//if route head is null, return 
+++		if(head_A == NULL){
+++			return;
+++		}
+++		//acquire AB and BC locks 
+++		lock_acquire(intersection_AB_Lock);
+++		lock_acquire(intersection_BC_Lock);
+++
+++		//enter intersection 
+++		enter(vehiclenumber,0);
+++
+++		//transfer intersections 
+++		transfer(vehiclenumber,0,1);
+++
+++
+++		//remvoe vehicle from head of queue and free 
+++		if (head_A->vehicle == vehiclenumber) {
+++			struct Node *temp = head_A;
+++			head_A = temp->next;
+++			kfree(temp);
+++		}
+++
+++		//release AB lock
+++		lock_release(intersection_AB_Lock);
+++		//leave intersection 
+++		leave(vehiclenumber,1);
+++		//relaese BC lock 
+++		lock_release(intersection_BC_Lock);
+++	}
+++
+++	// Intersection BC - CA
+++	if(route == 1){
+++
+++		//if head is null return 
+++		if(head_B == NULL){
+++			return;
+++		}
+++		
+++		//aquire BC and CA lock 
+++		lock_acquire(intersection_BC_Lock);
+++		lock_acquire(intersection_CA_Lock);
+++
+++		//enter intersection 
+++		enter(vehiclenumber,1);
+++		//transfer to new part of the intersection 
+++		transfer(vehiclenumber,1,2);
+++
+++		//remove vehicle from head and free 
+++		if (head_B->vehicle == vehiclenumber){
+++			struct Node *temp = head_B;
+++			head_B = temp->next;
+++			kfree(temp);
+++		}
+++
+++		//release BC lock 
+++		lock_release(intersection_BC_Lock);
+++		//leave intersection 
+++		leave(vehiclenumber,2);
+++		//release CA lock 
+++		lock_release(intersection_CA_Lock);
+++	}
+++
+++	//intersection CA-AB 
+++	if(route == 2){
+++		//if head is null, return 
+++		if(head_C == NULL){
+++			return;
+++		}
+++
+++		//acquire CA and AB locks 
+++		lock_acquire(intersection_CA_Lock);
+++		lock_acquire(intersection_AB_Lock);
+++
+++		//enter intersection CA 
+++		enter(vehiclenumber,2);
+++		//transfer to AB
+++		transfer(vehiclenumber,2,0);
+++
+++		//remove vehicle from head of list and free 
+++		if (head_C->vehicle == vehiclenumber){
+++			struct Node *temp = head_C;
+++			head_C = temp->next;
+++			kfree(temp);
+++		}
+++
+++		//release CA lock 
+++		lock_release(intersection_CA_Lock);
+++		//leave AB intersection 
+++		leave(vehiclenumber,0);
+++		//release AB lock 
+++		lock_release(intersection_AB_Lock);
+++	}
++ }
++ 
++ 
+++
++ /*
++  * turn_right()
++  *
++@@ -75,7 +209,90 @@ turn_right(unsigned long vehiclenumber)
++ 	 * Avoid unused variable warnings.
++ 	 */
++ 
++-	(void) vehiclenumber;
+++	//get route 
+++	int route = get_vehicle_route(vehiclenumber); 
+++
+++	//if route is A 
+++	if (route == 0){
+++
+++		//if no vehicles in route, return 
+++		if (head_A == NULL) {
+++			return; // return early if no vehicle exists
+++			}
+++
+++		//get intersection AB lock 
+++		lock_acquire(intersection_AB_Lock); 
+++
+++		//enter intersection AB
+++		enter(vehiclenumber, 0); 
+++
+++		
+++		//remvoe vehicle from route A queue and free 
+++		if (head_A->vehicle == vehiclenumber) {
+++			struct Node *temp = head_A;
+++			head_A = temp->next;
+++			kfree(temp);
+++		}
+++		
+++		//leave intersection AB
+++		leave(vehiclenumber, 0); 
+++		//release AB lock 
+++		lock_release(intersection_AB_Lock);
+++		
+++	}
+++
+++	//if route is B
+++	else if (route == 1){
+++		//if no vehicles in queue, return 
+++		if (head_B == NULL) {
+++    		return; // Exit early if no vehicle exists
+++		}
+++
+++		//get intersection BC lock 
+++		lock_acquire(intersection_BC_Lock); 
+++		//enter intersection BC
+++		enter(vehiclenumber, 1); 
+++		
+++		//remove vehicle from head of route B queue and free 
+++		if (head_B->vehicle == vehiclenumber){
+++			struct Node *temp = head_B;
+++			head_B = temp->next;
+++			kfree(temp);
+++		}
+++		
+++		//leave intersection BC 
+++		leave(vehiclenumber, 1); 
+++		//release BC lock 
+++		lock_release(intersection_BC_Lock);
+++		
+++	}
+++
+++	//if route is C
+++	else{
+++		//if no vehicles in route C list, return  
+++		if (head_C == NULL) {
+++			return; // Exit early if no vehicle exists
+++		}
+++
+++		//get intersection CA lock 
+++		lock_acquire(intersection_CA_Lock); 
+++		//enter intersection 
+++		enter(vehiclenumber, 2); 
+++		
+++		//remove vehicle from head of route C queue 
+++		if (head_C->vehicle == vehiclenumber){
+++			struct Node *temp = head_C;
+++			head_C = temp->next;
+++			kfree(temp);
+++		}
+++		
+++		//leave interesection CA 
+++		leave(vehiclenumber, 2); 
+++		//release CA lock 
+++		lock_release(intersection_CA_Lock);
+++		
+++	}
+++
++ }
++ 
++ 
++@@ -112,8 +329,459 @@ vehicle_thread(void * unusedpointer,
++ 	(void) unusedpointer;
++ 	(void) vehiclenumber;
++ 
++-	(void) turn_left;
++-	(void) turn_right;
+++	//get route and type
+++	int route = get_vehicle_route(vehiclenumber); 
+++	int type = get_vehicle_type(vehiclenumber); 
+++
+++	//make node for new vehicle 
+++	struct Node *newVehicle = kmalloc(sizeof(struct Node));
+++	if (newVehicle == NULL){
+++		panic("kmalloc failed"); 
+++	}
+++	newVehicle->vehicle = vehiclenumber; 
+++	newVehicle->next = NULL; 
+++	
+++	//Add vehicle to appropriate Route LL 
+++	if (route == 0){ //if route is A 
+++		//call approach for this vehicle
+++	
+++		//lock route A LL
+++		lock_acquire(routeA_LL_Lock); 
+++		
+++		if (head_A == NULL){ //check if head is null 
+++				//set this vehicle as head 
+++				head_A = newVehicle; 
+++			}
+++		
+++		else{
+++			//initialize curr and prev 
+++			struct Node *curr = head_A; 
+++			struct Node *prev = NULL;
+++
+++			if (type == 1){ //if a car 
+++				
+++			//iterate through LL and add car
+++			while (curr != NULL &&  get_vehicle_type(curr->vehicle) != 0){
+++					prev = curr; 
+++					curr = curr->next; 
+++			}
+++				if (prev == NULL) {
+++                // No trucks found; insert at the head
+++                newVehicle->next = head_A; 
+++                head_A = newVehicle; 
+++            } else {
+++                // Insert right before the first truck
+++                newVehicle->next = curr; 
+++                prev->next = newVehicle; 
+++            }
+++			}
+++
+++			else if (type == 0){ //if a truck 
+++
+++				//iterate through LL and add truck
+++
+++				while (curr != NULL){
+++					prev = curr; 
+++					curr = curr->next; 
+++				}
+++
+++				//now prev is last node
+++
+++				//add to end of list  
+++				prev->next = newVehicle; 
+++
+++			}
+++		}
+++		
+++		//release lock 
+++		//approach(vehiclenumber); 
+++		lock_release(routeA_LL_Lock);
+++		
+++
+++	}
+++
+++	else if (route == 1){ //if route is B
+++
+++		//lock route B LL
+++		lock_acquire(routeB_LL_Lock); 
+++		if (head_B == NULL){ //check if head is null 
+++				//set this vehicle as head 
+++				head_B = newVehicle; 
+++			}
+++		
+++		else{
+++			//initialize curr and prev 
+++			struct Node *curr = head_B; 
+++			struct Node *prev = NULL;
+++
+++			if (type == 1){ //if a car 
+++				
+++			//iterate through LL and add car
+++			
+++					while (curr != NULL &&  get_vehicle_type(curr->vehicle) != 0){
+++					prev = curr; 
+++					curr = curr->next; 
+++			}
+++				if (prev == NULL) {
+++                // No trucks found; insert at the head
+++                newVehicle->next = head_B; 
+++                head_B= newVehicle; 
+++            } else {
+++                // Insert right before the first truck
+++                newVehicle->next = curr; 
+++                prev->next = newVehicle; 
+++            }
+++			}
+++
+++			else if (type == 0){ //if a truck 
+++
+++				//iterate through LL and add truck
+++
+++				while (curr != NULL){
+++					prev = curr; 
+++					curr = curr->next; 
+++				}
+++
+++				//now prev is last node
+++				//add to end of list  
+++				prev->next = newVehicle; 
+++
+++			}
+++		}
+++
+++		//release lock 
+++		 	//approach(vehiclenumber); 
+++		lock_release(routeB_LL_Lock);
+++
+++	}
+++
+++	else { //if route is C
+++
+++		//lock route C LL
+++		lock_acquire(routeC_LL_Lock); 
+++		if (head_C == NULL){ //check if head is null 
+++				//set this vehicle as head 
+++				head_C = newVehicle; 
+++			}
+++		
+++		else{
+++			
+++			//initialize curr and prev 
+++			struct Node *curr = head_C; 
+++			struct Node *prev = NULL;
+++
+++			if (type == 1){ //if a car 
+++				
+++			//iterate through LL and add car
+++			
+++					while (curr != NULL &&  get_vehicle_type(curr->vehicle) != 0){
+++					prev = curr; 
+++					curr = curr->next; 
+++			}
+++				if (prev == NULL) {
+++                // No trucks found; insert at the head
+++                newVehicle->next = head_C; 
+++                head_C = newVehicle; 
+++            } else {
+++                // Insert right before the first truck
+++                newVehicle->next = curr; 
+++                prev->next = newVehicle; 
+++            }
+++			}
+++
+++			else if (type == 0){ //if a truck 
+++
+++				//iterate through LL and add truck
+++
+++				while (curr != NULL){
+++					prev = curr; 
+++					curr = curr->next; 
+++				}
+++
+++				//now prev is last node
+++
+++				//add to end of list  
+++				prev->next = newVehicle; 
+++
+++			}
+++		}
+++		//approach(vehiclenumber); 
+++		//release lock 
+++		lock_release(routeC_LL_Lock);
+++
+++	}
+++
+++	approach(vehiclenumber); 
+++	
+++	//get turn direction 
+++	int turn_direction = get_vehicle_turn_direction(vehiclenumber);
+++
+++		if(route == 0){
+++			
+++			//get route A priority queue lock 
+++			
+++			lock_acquire(routeA_LL_Lock);
+++			
+++			
+++			//check if this vehicle is the next one in the queue 
+++			if (head_A != NULL && vehiclenumber != head_A->vehicle){
+++				//if not next...
+++			
+++				//get sleeping queue lock 
+++				
+++				lock_acquire(sleep_A_lock); 
+++				//add thread to sleep queue 
+++				enqueue(&sleep_head_A, newVehicle->vehicle); 
+++				//release sleeping queue lock  
+++				
+++				lock_release(sleep_A_lock); 
+++				
+++				lock_release(routeA_LL_Lock); 
+++
+++				//sleep thread 
+++				int spl = splhigh(); 
+++				
+++				
+++				thread_sleep(newVehicle); 
+++				splx(spl); 
+++
+++				//get sleeping queue lock 
+++				
+++				lock_acquire(sleep_A_lock);
+++				 
+++				//dequeue thread from sleep queue 
+++				dequeue(newVehicle->vehicle, &sleep_head_A);  
+++				//release lock 
+++
+++				
+++				lock_release(sleep_A_lock); 
+++				
+++				lock_acquire(routeA_LL_Lock);
+++				
+++
+++				 
+++			}
+++
+++			//if vehicle is next, turn 
+++			if(vehiclenumber ==  head_A->vehicle){
+++			
+++				//turn left 
+++				if (turn_direction == 1){
+++				turn_left(vehiclenumber); 
+++
+++				}
+++
+++			//otherwise turn right 
+++			else{
+++				turn_right(vehiclenumber); 
+++			}
+++			
+++		}
+++		 
+++		//release priority queue lock 
+++		
+++		
+++		
+++		//wake next thread 
+++		//if head_A thread is sleeping, wake it 
+++		if (sleep_head_A != NULL && head_A != NULL){
+++			int spl = splhigh();
+++			lock_acquire(sleep_A_lock); 
+++			thread_wakeup(head_A);
+++			splx(spl);
+++
+++			lock_release(sleep_A_lock); 
+++
+++		
+++			
+++		}
+++		lock_release(routeA_LL_Lock);
+++		
+++
+++		
+++		}
+++
+++		else if(route == 1){
+++
+++						//get route A priority queue lock 
+++			
+++			lock_acquire(routeB_LL_Lock);
+++			
+++			
+++			//check if this vehicle is the next one in the queue 
+++			if (head_B != NULL && vehiclenumber != head_B->vehicle){
+++				//if not next...
+++			
+++				//get sleeping queue lock 
+++				
+++				lock_acquire(sleep_B_lock); 
+++				//add thread to sleep queue 
+++				enqueue(&sleep_head_B, newVehicle->vehicle); 
+++				//release sleeping queue lock  
+++				
+++				lock_release(sleep_B_lock); 
+++				
+++				lock_release(routeB_LL_Lock); 
+++
+++				//sleep thread 
+++				int spl = splhigh(); 
+++				
+++				
+++				thread_sleep(newVehicle); 
+++				splx(spl); 
+++
+++				//get sleeping queue lock 
+++				
+++				lock_acquire(sleep_B_lock);
+++				 
+++				//dequeue thread from sleep queue 
+++				dequeue(newVehicle->vehicle, &sleep_head_B);  
+++				//release lock 
+++
+++				
+++				lock_release(sleep_B_lock); 
+++				
+++				lock_acquire(routeB_LL_Lock);
+++				
+++
+++				 
+++			}
+++
+++			//if vehicle is next, turn 
+++			if(vehiclenumber ==  head_B->vehicle){
+++			
+++				//turn left 
+++				if (turn_direction == 1){
+++				turn_left(vehiclenumber); 
+++
+++				}
+++
+++			//otherwise turn right 
+++			else{
+++				turn_right(vehiclenumber); 
+++			}
+++			
+++		}
+++		 
+++		//release priority queue lock 
+++		
+++		
+++		
+++		//wake next thread 
+++		//if head_A thread is sleeping, wake it 
+++		if (sleep_head_B != NULL && head_B != NULL){
+++			int spl = splhigh();
+++			lock_acquire(sleep_B_lock); 
+++			thread_wakeup(head_B);
+++			splx(spl);
+++
+++
+++			lock_release(sleep_B_lock); 
+++
+++		
+++			
+++		}
+++		lock_release(routeB_LL_Lock);
+++		
+++
+++		
+++		}
+++
+++		else{
+++						//get route A priority queue lock 
+++			
+++			lock_acquire(routeC_LL_Lock);
+++			
+++			
+++			//check if this vehicle is the next one in the queue 
+++			if (head_C != NULL && vehiclenumber != head_C->vehicle){
+++				//if not next...
+++			
+++				//get sleeping queue lock 
+++				
+++				lock_acquire(sleep_C_lock); 
+++				//add thread to sleep queue 
+++				enqueue(&sleep_head_C, newVehicle->vehicle); 
+++				//release sleeping queue lock  
+++				
+++				lock_release(sleep_C_lock); 
+++				
+++				lock_release(routeC_LL_Lock); 
+++
+++				//sleep thread 
+++				int spl = splhigh(); 
+++				
+++				
+++				thread_sleep(newVehicle); 
+++				splx(spl); 
+++
+++				//get sleeping queue lock 
+++				
+++				lock_acquire(sleep_C_lock);
+++				 
+++				//dequeue thread from sleep queue 
+++				dequeue(newVehicle->vehicle, &sleep_head_C);  
+++				//release lock 
+++
+++				
+++				lock_release(sleep_C_lock); 
+++				
+++				lock_acquire(routeC_LL_Lock);
+++				
+++
+++				 
+++			}
+++
+++			//if vehicle is next, turn 
+++			if(vehiclenumber ==  head_C->vehicle){
+++			
+++				//turn left 
+++				if (turn_direction == 1){
+++				turn_left(vehiclenumber); 
+++
+++				}
+++
+++			//otherwise turn right 
+++			else{
+++				turn_right(vehiclenumber); 
+++			}
+++			
+++		}
+++		 
+++		//release priority queue lock 
+++		
+++		
+++		
+++		//wake next thread 
+++		//if head_A thread is sleeping, wake it 
+++		if (sleep_head_C != NULL && head_C != NULL){
+++			int spl = splhigh();
+++			lock_acquire(sleep_C_lock); 
+++			thread_wakeup(head_C);
+++			splx(spl);
+++
+++
+++			lock_release(sleep_C_lock); 
+++
+++		
+++			
+++		}
+++		lock_release(routeC_LL_Lock);
+++		
+++
+++		
+++	}
+++		
+++		
+++
+++	lock_acquire(vehicle_count_lock);
+++    vehicles_finished++;  // Increment the number of vehicles finished
+++    lock_release(vehicle_count_lock);
+++
+++	
+++
+++	//(void) turn_left;
+++	//(void) turn_right;
++ 
++ 	/* Note: Throughout this project you will use the get_vehicle_* functions
++ 	 * to get various information about the vehicle. For example:
++@@ -127,6 +795,134 @@ vehicle_thread(void * unusedpointer,
++ 	 */
++ }
++ 
+++/*SLEEPING THREAD QUEUE FUNCTIONS*/
+++/**
+++ * enqueue() 
+++ * 
+++ * Arguments: 
+++ * 			struct Node **sleep_head: double pointer for head of queue list 
+++ * 			unsigned long int vehiclenumber: holds vehicle id number 
+++ * 
+++ * Returns: 
+++ * 			nothing 
+++ * 
+++ * Notes: 
+++ * 			Used to add a sleeping thread to the sleep queue that corresponds with that route. 
+++ */
+++void enqueue(struct Node **sleep_head, unsigned long int vehiclenumber){
+++	//get vehicle type 
+++	int type = get_vehicle_type(vehiclenumber); 
+++
+++	//if head of queue is NULL...
+++	if (*sleep_head == NULL){ 
+++				
+++					//create new node that is the vehicle number and make head of the queue 
+++					*sleep_head = kmalloc(sizeof(struct Node)); 
+++					if (*sleep_head == NULL){
+++						panic("kmalloc failed"); 
+++				
+++					}
+++
+++					//set fields 
+++					(*sleep_head) ->vehicle = vehiclenumber; 
+++					(*sleep_head) ->next = NULL; 
+++				
+++		
+++			}
+++		
+++		//otherwise, add to queue 
+++		else{
+++			//create new node that is vehicle number 
+++			struct Node *newNode = kmalloc(sizeof(struct Node)); 
+++			if (newNode == NULL){
+++				panic("kmalloc failed"); 
+++			}
+++			//set fields 
+++			newNode->next = NULL; 
+++			newNode -> vehicle = vehiclenumber;
+++
+++
+++			//initialize curr and prev 
+++			struct Node *curr = *sleep_head; 
+++			struct Node *prev = NULL;
+++
+++			if (type == 1){ //if a car 
+++				
+++			//iterate through LL and add car
+++			while (curr != NULL &&  get_vehicle_type(curr->vehicle) != 0){
+++					prev = curr; 
+++					curr = curr->next; 
+++			}
+++				//if no trucks present, insert at head of queue 
+++				if (prev == NULL) {
+++                newNode->next = *sleep_head;
+++				*sleep_head = newNode; 
+++			}
+++				//otherwise there is at least one truck
+++				//iterate to end of cars and insert before first truck 
+++             else {
+++                newNode->next = curr; 
+++                prev->next = newNode; 
+++            }
+++			}
+++
+++			//if vehicle is a truck...
+++			else if (type == 0){ 
+++
+++				//iterate through LL and add truck to end of queue 
+++				while (curr != NULL){
+++					prev = curr; 
+++					curr = curr->next; 
+++				}
+++
+++				prev->next = newNode; 
+++
+++			}
+++		}
+++
+++	
+++}
+++
+++
+++/**
+++ * dequeue() 
+++ * 
+++ * Arguments: 
+++ * 			unsigned long int vehiclenumber: holds vehicle id number 			
+++ * 			struct Node **sleep_head: double pointer for head of queue list 
+++ * 			
+++ * Returns: 
+++ * 			nothing 
+++ * 
+++ * Notes: 
+++ * 			Used to remove a sleeping thread from the sleep queue that corresponds with that route. 
+++ */
+++void dequeue(unsigned long int vehiclenumber, struct Node **sleep_head){
+++
+++	//head of queue 
+++	struct Node *curr = *sleep_head; 
+++
+++	//if head is null, return 
+++	if (curr == NULL){
+++		return; 
+++	}
+++
+++	//remove vehicle from head of queue and free 
+++	if (curr->vehicle == vehiclenumber){
+++		*sleep_head = curr->next; 
+++		kfree(curr); 
+++		return; 
+++	}
+++	
+++
+++	
+++	
+++	
+++
+++
+++}
+++
+++
++ 
++ /*
++  * stoplight_driver()
++@@ -148,11 +944,27 @@ vehicle_thread(void * unusedpointer,
++  *      to finish().
++  */
++ 
++-int
++-stoplight_driver(int vehicle_count)
++-{
++-	int index, error;
+++int stoplight_driver(int vehicle_count) {
+++    int index, error;
+++
+++    // Initialize intersection, route, and sleeping queue locks
+++    intersection_AB_Lock = lock_create("intersection_AB_Lock");
+++    intersection_BC_Lock = lock_create("intersection_BC_Lock");
+++    intersection_CA_Lock = lock_create("intersection_CA_Lock");
+++
+++    routeA_LL_Lock = lock_create("routeA_LL_Lock");
+++    routeB_LL_Lock = lock_create("routeB_LL_Lock");
+++    routeC_LL_Lock = lock_create("routeC_LL_Lock");
+++
+++	sleep_A_lock = lock_create("sleep_A_lock");
+++	sleep_B_lock = lock_create("sleep_B_lock");
+++	sleep_C_lock = lock_create("sleep_B_lock");
+++
+++	//initialize vehicle count lock 
+++	vehicle_count_lock = lock_create("vehicle_count_lock");
+++
++ 
+++	//create vehicle threads 
++ 	for (index = 0; index < vehicle_count; index++) {
++ 
++ 		/* This creates a thread for each vehicle, with unique numbers. */
++@@ -186,7 +998,31 @@ stoplight_driver(int vehicle_count)
++ 	 * Note that deleting the call to finish() will not score you any points. You
++ 	 * must correctly synchronize it to get credit for that part of the project.
++ 	 */
++-	finish();
+++	
+++		//wait until all vehicles have finished 
+++        while (vehicles_finished != vehicle_count) { //not done 
+++			continue; 
+++        }  
+++
+++		//call finish once all vehicles are done 
+++		finish(); 
+++	
+++		//clean up 
+++		lock_destroy(vehicle_count_lock);
+++
+++		lock_destroy(intersection_AB_Lock);
+++		lock_destroy(intersection_BC_Lock);
+++		lock_destroy(intersection_CA_Lock);
+++		
+++		lock_destroy(routeA_LL_Lock); 
+++		lock_destroy(routeB_LL_Lock); 
+++		lock_destroy(routeC_LL_Lock); 
+++
+++		lock_destroy(sleep_A_lock); 
+++		lock_destroy(sleep_B_lock); 
+++		lock_destroy(sleep_C_lock); 
++ 
++ 	return 0;
+++
++ }
+++
++diff --git a/kern/asst1/stoplight_framework.c b/kern/asst1/stoplight_framework.c
++index 54f320a..b91c89f 100644
++--- a/kern/asst1/stoplight_framework.c
+++++ b/kern/asst1/stoplight_framework.c
++@@ -319,28 +319,97 @@ stoplight_custom(int nargs, char **args) {
++ 	switch(num) {
++ 		/* Feel free to add your own custom stoplight tests here! */
++ 
++-		case 0:
+++		case 0: //all cars, route A, left turn
++ 			setup(30);
+++			int i; 
++ 
++-			/* Add vehicle setup here */
+++			for (i= 0; i < 30; i++){
+++				all_vehicles[i].route = ROUTE_A;
+++				all_vehicles[i].type = VEHICLE_CAR; 
+++				all_vehicles[i].turn_direction = TURN_LEFT; 
+++			}
++ 
++ 			stoplight_driver(30);
++ 			break;
++ 
++-		case 1:
+++		case 1: //cars and trucks, route A, left turn
++ 			setup(30);
+++			
+++			for(i = 0; i < 30; ++i) {
+++				/* Important: All vehicles on same route, so we can test priority. */
+++				all_vehicles[i].route = ROUTE_A;
+++				all_vehicles[i].turn_direction = TURN_LEFT;
++ 
++-			/* Add vehicle setup here */
+++				/* First 15 low priority, next 15 high priority. */
+++				all_vehicles[i].type = (i >= 15 ? VEHICLE_CAR : VEHICLE_TRUCK);
+++			}
+++
+++
+++			stoplight_driver(30);
+++			break;
+++
+++
+++		case 2: 
+++			setup(30); //route C,, all left turn
+++
+++			for(i = 0; i < 30; ++i) {
+++				all_vehicles[i].route = ROUTE_C;
+++				all_vehicles[i].turn_direction = TURN_LEFT;
+++				
+++				
+++				/* First 15 low priority, next 15 high priority. */
+++				all_vehicles[i].type = (i >= 15 ? VEHICLE_CAR : VEHICLE_TRUCK);
+++			}
++ 
++ 			stoplight_driver(30);
++ 			break;
++ 
+++		
+++		case 3: 
+++			setup(100); //all routes, all left turn
+++
+++			for(i = 0; i < 100; ++i) {
+++				all_vehicles[i].route = random() % 3;
+++				all_vehicles[i].turn_direction = TURN_LEFT;
+++				
+++				
+++				/* First 15 low priority, next 15 high priority. */
+++				all_vehicles[i].type = (i >= 15 ? VEHICLE_CAR : VEHICLE_TRUCK);
+++			}
+++
+++			stoplight_driver(100);
+++			break;
+++
+++		case 4: 
+++			setup(3); //one car on each route, all turning left 
+++
+++			all_vehicles[0].route = ROUTE_A; 
+++			all_vehicles[0].turn_direction = TURN_LEFT;
+++			all_vehicles[0].type = VEHICLE_CAR;
+++
+++			all_vehicles[1].route = ROUTE_B; 
+++			all_vehicles[1].turn_direction = TURN_LEFT;
+++			all_vehicles[1].type = VEHICLE_CAR;
+++
+++			all_vehicles[2].route = ROUTE_C; 
+++			all_vehicles[2].turn_direction = TURN_LEFT;
+++			all_vehicles[2].type = VEHICLE_CAR;
+++
+++		
+++			stoplight_driver(3);
+++			break;
+++
+++	
+++			
+++
++ 		/* Add more tests if you want here */
++ 
++ 		default:
++ 			kprintf("Unknown sl_custom test %d\n", num);
++ 			break;
++-	}
+++	
++ 
++-	return 0;
+++	
+++}
+++return 0;
++ }
++\ No newline at end of file
++diff --git a/kern/include/synch.h b/kern/include/synch.h
++index af890e4..7223b72 100644
++--- a/kern/include/synch.h
+++++ b/kern/include/synch.h
++@@ -51,6 +51,7 @@ void              sem_destroy(struct semaphore *);
++ struct lock {
++ 	char *name;
++ 	struct thread * volatile current_holder;
+++	int flag;
++ 	// add what you need here
++ 	// (don't forget to mark things volatile as needed)
++ };
++diff --git a/kern/include/synch_blank.h b/kern/include/synch_blank.h
++index 3583e78..c195642 100644
++--- a/kern/include/synch_blank.h
+++++ b/kern/include/synch_blank.h
++@@ -50,6 +50,7 @@ void              sem_destroy(struct semaphore *);
++ 
++ struct lock {
++ 	char *name;
+++	int flag; //checking if the lock is acquired or available 
++ 	// add what you need here
++ 	// (don't forget to mark things volatile as needed)
++ };
++diff --git a/kern/thread/synch.c b/kern/thread/synch.c
++index 817928e..ab62d34 100644
++--- a/kern/thread/synch.c
+++++ b/kern/thread/synch.c
++@@ -120,47 +120,101 @@ lock_create(const char *name)
++ 	DEBUG(DB_VM, "Lock created: %s\n", lock->name); 
++ 	
++ 	// add stuff here as needed
++-	
+++	lock->flag = 1; 
+++
+++
++ 	return lock;
++ }
++ 
++ void
++ lock_destroy(struct lock *lock)
++ {
+++	
++ 	assert(lock != NULL);
++ 
++ 	// add stuff here as needed
++ 	
+++	int spl; 
+++	spl = splhigh(); //no interruptions 
+++	
+++	assert(thread_hassleepers(lock) == 0); //check that there are not threads waiting on the lock
+++
+++	
+++
+++	
++ 	DEBUG(DB_VM, "Lock %s destroyed.\n", lock->name); 
++ 
++ 	kfree(lock->name);
+++	kfree(lock->current_holder); 
+++	//kfree(lock->flag); 
++ 	kfree(lock);
+++
+++	splx(spl); //restore spl to previous level 
++ }
++ 
++ void
++ lock_acquire(struct lock *lock)
++ {
++-	// Write this
+++	int spl;
+++	assert(lock != NULL);
++ 
++-	(void)lock;  // suppress warning until code gets written
+++	/*
+++	 * May not block in an interrupt handler.
+++	 *
+++	 * For robustness, always check, even if we can actually
+++	 * complete the P without blocking.
+++	 */
+++	assert(in_interrupt==0);
+++
+++	spl = splhigh(); //diable interrupts 
+++	while (lock->flag==0) { //if lock flag is 0, lock not available, sleep thread 
+++		thread_sleep(lock);
+++	}
+++	assert(lock->flag == 1); //lock is available, make sure flag is 1 
+++	lock->flag = 0; //set flag to 0 (lock is being used)
+++	lock->current_holder = curthread; //set self to current_holder
+++	splx(spl); //reset spl level 
+++
+++	//(void)lock;  // suppress warning until code gets written
++ }
++ 
++ void
++ lock_release(struct lock *lock)
++ {
++ 	// Write this
+++	
+++	int spl; 
+++	
+++	//check that lock given is not null
+++	assert(lock != NULL); 
+++	
+++	spl = splhigh(); //disable interrupts 
++ 
++-	(void)lock;  // suppress warning until code gets written
+++	//decrease lock value 
+++	lock->flag = 1; 
+++	lock -> current_holder = NULL;
+++
+++	//wake up next thread
+++	thread_wakeup(lock); 
+++
+++
+++
+++	//set spl to previous level (enable interrupts) 
+++	splx(spl);
+++
+++
+++	//(void)lock;  // suppress warning until code gets written
++ }
++ 
++ int
++ lock_do_i_hold(struct lock *lock)
++ {
++ 	// Write this
+++	if(lock->current_holder == curthread) return 1;
+++	else return 0;
+++	//(void)lock;  // suppress warning until code gets written
++ 
++-	(void)lock;  // suppress warning until code gets written
++-
++-	return 1;    // dummy until code gets written
+++	//return 1;    // dummy until code gets written
++ }
++ 
++ ////////////////////////////////////////////////////////////
++diff --git a/sys161-default.conf b/sys161-default.conf
++index 930fb69..221a52e 100644
++--- a/sys161-default.conf
+++++ b/sys161-default.conf
++@@ -120,4 +120,5 @@
++ 30	trace
++ # Note: Maximum possible ram is 16 megabytes (16777216).
++ # 2097152 = 2 megabytes.
++-31	busctl	ramsize=2097152
+++31	#busctl	ramsize=2097152
+++	busctl ramsize = 8388608
+diff --git a/kern/asst1/design.txt b/asst1-part2/design.txt
+similarity index 100%
+rename from kern/asst1/design.txt
+rename to asst1-part2/design.txt
+diff --git a/kern/asst1/exercises.txt b/asst1-part2/exercises.txt
+similarity index 100%
+rename from kern/asst1/exercises.txt
+rename to asst1-part2/exercises.txt
+diff --git a/asst1-part2/sys161.conf b/asst1-part2/sys161.conf
+new file mode 100644
+index 0000000..930fb69
+--- /dev/null
++++ b/asst1-part2/sys161.conf
+@@ -0,0 +1,123 @@
++# Sample sys161.conf file
++#
++# This file tells System/161 what devices to use.
++#
++# There are 32 LAMEbus slots on the System/161 motherboard. There may
++# be only one bus controller card, and it must go in slot 31. Other
++# than that, you can put in whatever devices you want.
++#
++# The syntax is simple: one slot per line; the slot number goes first,
++# then the expansion card name, then any arguments. Some of the devices
++# have required arguments.
++#
++# The devices are:
++#
++#   busctl    The LAMEbus controller card. Must go in slot 31, and only
++#             in slot 31. Required argument "ramsize=NUMBER" specifies
++#             the amount of physical RAM in the system. This amount must
++#             be a multiple of the hardware page size (which is probably 
++#             4096 or 8192.) The maximum amount of RAM allowed is 16M;
++#             this restriction is meant as a sanity check and can be 
++#             altered by recompiling System/161.
++#
++#   trace     The System/161 trace controller device. This can be used
++#             by software for various debugging purposes. You can have
++#             more than one trace card, but they all manipulate the 
++#             same internal state. No arguments.
++#
++#   timer     Countdown timer. The timer card also contains a real-time 
++#             clock and a small speaker for beeping. Most configurations
++#             will include at least one timer. No arguments. 
++#
++#   serial    Serial port. This is connected to the standard input and
++#             standard output of the System/161 process, and serves as
++#             the system console. Most configurations need this. There
++#             is no support at present for more than one serial port.
++#             No arguments.
++#
++#   screen    Full-screen memory-mapped text video card. This is 
++#             connected to the standard input and standard output of
++#             the System/161 process, and serves as the system console.
++#             There is no support at present for more than one screen.
++#             Likewise, at present you may not use "screen" and "serial"
++#             together. No arguments. NOTE: not presently implemented.
++#
++#   random    (Pseudo-)random number generator. This accesses the 
++#             randomizer state within System/161; thus, while you can
++#             add multiple random cards, they all return values from the
++#             same pseudorandom sequence. The random seed is set by 
++#             using either the "seed=NUMBER" argument, which sets the
++#             random seed to a specified value, or the "autoseed" 
++#             argument, which sets the random seed based on the host
++#             system clock. If neither argument is given or no random
++#             device is used, the seed is set to 0. Note that the seed
++#             affects various randomized behavior of the system as well
++#             as the values provided by the random device.
++#
++#   disk      Fixed disk. The options are as follows:
++#                 rpm=NUMBER         Set spin rate of disk.
++#                 sectors=NUMBER     Set disk size. Each sector is 512 bytes.
++#                 file=PATH          Specify file to use as storage for disk.
++#                 paranoid           Set paranoid mode.
++#
++#             The "file=PATH" argument must be supplied. The size must be
++#             at least 128 sectors (64k), and the RPM setting must be a
++#             multiple of 60.
++#
++#             The "paranoid" argument, if given, causes fsync() to be 
++#             called on every disk write to make sure the data written
++#             reaches actual stable storage. This will make things very 
++#             slow.
++#
++#             You can have as many disks as you want (until you run out
++#             of slots) but each should have a distinct file to use for
++#             storage. Most common setups will use two separate disks,
++#             one for filesystem storage and one for swapping.
++#
++#   nic       Network card. This allows communication among multiple
++#             simultaneously-running copies of System/161. The arguments
++#             are:
++#                 hub=PATH           Give the path to the hub socket.
++#                 hwaddr=NUMBER      Specify the hardware-level card address.
++#
++#             The hub socket path should be the argument supplied to the
++#             hub161 program. The default is ".sockets/hub".
++#
++#             The hardware address should be unique among the systems 
++#             connected to the same hub. It should be an integer between 
++#             1 and 65534. Values 0 and 65535 are reserved for special
++#             purposes. This argument is required.
++#
++#             NOTE: disable (comment out) nic devices if you aren't 
++#             actively using them, to avoid unnecessary overhead.
++#
++#   emufs     Emulator filesystem. This provides access *within* 
++#             System/161 to the filesystem that System/161 is running
++#             in. There is one optional argument, "dir=PATH". The path
++#             specified is used as the root of the filesystem provided
++#             by emufs. (Note that it is possible to access the real 
++#             parent of this root and thus any other directory; this
++#             argument does not restrict access.) The default path is
++#             ".", meaning System/161's own current directory.
++#
++
++#
++# Here is a suggested default configuration: 512k RAM, two 5M disks.
++#
++
++0	serial
++#0	screen
++
++1	emufs
++
++2	disk	rpm=7200	sectors=10240	file=DISK1.img
++3	disk	rpm=7200	sectors=10240	file=DISK2.img
++
++#27	nic hwaddr=1
++
++28	random	autoseed
++29	timer
++30	trace
++# Note: Maximum possible ram is 16 megabytes (16777216).
++# 2097152 = 2 megabytes.
++31	busctl	ramsize=2097152
+diff --git a/asst2-part1/code-reading.txt b/asst2-part1/code-reading.txt
+new file mode 100644
+index 0000000..5b82e33
+--- /dev/null
++++ b/asst2-part1/code-reading.txt
+@@ -0,0 +1,82 @@
++Kaitlin O’Leary - G01372290
++Shalini Maknoor - G01503797
++
++Code Reading Questions 
++
++1.What are the ELF magic numbers? 
++
++There are 4 ELF magic numbers:
++     - ELFMAG0 - 0x7f
++     - ELFMAG1 - ‘E’
++     - ELFMAG2 - ‘L’
++     - ELFMAG3 - ‘F’
++kern/include/elf.h
++
++
++2. What is the difference between UIO_USERISPACE and UIO_USERSPACE? When should one use UIO_SYSSPACE instead? 
++
++UIO_USERSPACE is for transferring data between the kernel and the userspace. UIO_USERISPACE is for executable user program instructions. UIO_SYSSPACE is for transferring data within the kernel. → kern/include/uio.h, kern/userprog/loadelf.c
++
++
++3. Why can the struct uio that is used to read in a segment be allocated on the stack in load_segment() (i.e., where does the memory read actually go)? 
++
++The struct uio that is used to read in a segment is allocated to the stack in load_segment() because it is a local variable that will no longer be needed after load_segment() completes. The address used to read in the segment is a virtual address that points to the user space (a userptr_t is used). This allows the data that is read to be directly stored in the location pointed to by the virtual address and does not need to actually be stored within the structure itself. This allows the structure to be stored on the stack. → kern/userprog/loadelf.c
++
++
++4. In runprogram(), why is it important to call vfs_close() before switching to usermode?
++
++When a file is opened, resources are allocated for managing and reading the file. As long as the file is open, these resources remain in place. If vfs_close() is not called, these resources are still allocated, which could cause memory leakage. This also prevents another thread.process from using the file because it is still open in the original thread. Calling vfs_close() deallocates those resources to prevent memory leaks and allows a different thread/process to open and use the file. → kern/userprog/runprogram.c
++
++
++
++5. What function forces the processor to switch into usermode? Is this function machine dependent?
++
++The function mips_usermode forces the processor to switch into usermode. This function is machine dependent and used by the machine independent thread code. → kern/arch/mips/mips/trap.c
++
++
++6. In what file are copyin, copyout and memmove defined? Why can't copyin and copyout be 
++implemented simply as memmove? 
++
++Copyinout.c defines copyin and copyout, while memmove.c defines memmove. Since copyin/copyout moves memory from user addresses to kernel addresses and from kernel addresses to user addresses, memmove can only move memory between user addresses. 
++kern/lib/copyinout.c, lib/libc/memmove.c
++
++
++7. What is the purpose of userptr_t? Explain briefly. 
++
++userptr_t is a pointer to a one-byte struct, so it won't mix with other pointers and to keep track of user space addresses for each of the users. kern/include/types.h, kern/include/uio.h
++
++
++8. What is the numerical value of the exception code for a MIPS system call? 
++
++The numerical value of the exception code for a MIPS system call is EX_SYS 8. → kern/arch/mips/mips/trap.c
++
++
++9. Why does mips_trap() set curspl to SPL_HIGH "manually", instead of using splhigh()? 
++
++The function mips_trap() sets curspl to SPL_HIGH “manually” so the previous level can be saved in savespl. This allows the previous interrupt level to be restored after the interruption is handled. The function split() is atomic so it does not allow the previous interrupt level to be stored before switching. 
++
++
++10. How many bytes is an instruction in MIPS? (Answer this by reading mips_syscall() carefully, not by looking somewhere else.) 
++
++Each MIPS instruction is 32 bits long (4 bytes) . kern/arch/mips/mips/syscall.c
++
++
++11. Why do you "probably want to change" the implementation of kill_curthread()? 
++
++We will “probably want to change” the implementation of kill_curthread() because right now it only panics and halts the system. We should change this implementation to better handle this fault instead of shutting down the entire system. → kern/arch/mips/mips/trap.c
++
++
++12. What would be required to implement a system call that took more than 4 arguments? 
++
++In MIPS, there are only 4 argument registers (a0 - a3). If a system call took more than these 4 arguments, extra arguments would have to be stored and fetched from the user-level stack. 
++
++
++13. What is the purpose of the SYSCALL macro? 
++
++The SYSCALL macro allows a system call handler to be created for a certain syscall, using the code in syscalls-mips.S. The syscall name is mapped to the call number. The syscall number is loaded into v0, and the system jumps to the shared syscall code. → lib/libc/syscalls-mips.S
++
++
++14. What is the MIPS instruction that actually triggers a system call? (Answer this by reading the source in this directory, not looking somewhere else.) 
++
++The MIPS instruction that triggers a system call is the instruction syscall. Before executing the instruction, the syscall number needs to be loaded into the register $v0. kern/arch/mips/mips/syscall.c
++
+diff --git a/asst2-part1/progress-report.txt b/asst2-part1/progress-report.txt
+new file mode 100644
+index 0000000..1052927
+--- /dev/null
++++ b/asst2-part1/progress-report.txt
+@@ -0,0 +1,55 @@
++Kaitlin O’Leary - G01372290
++Shalini Maknoor - G01503797
++
++PA2 Progress Report 
++
++
++We have gone through the code base to investigate how the system calls work. We plan to edit the thread structure to include fields such as pid, ppid, exit status, if the process has exited or not, a pointer to the parent process, and an array of pointers to the child process(es). 
++
++
++Process table:
++
++We created a processes.h file and a processes.c file. These are used to manage and track the process table. Because the system is a 1:1 process : thread model, we adapted the thread structure for use as a process. We added these fields to the thread struct: pid, ppid, exit_status. We will use an array of thread structs of size 128 as the process table. The pid of a process at index i will be i + 1. This is because the pid 0 needs to be reserved for returning during forking. It would be impossible to tell which was the parent and which was the child after a fork if the parent’s pid was 0. Any pid’s that are available will have empty spaces in the array. This will allow for pids of processes that have finished to be reused. 
++
++We also added the following helper functions:
++
++create_proc() – this function creates a new process.
++
++add_proc() – this function takes the process created by create_proc() or a given process, and adds it to the array.
++
++destroy_proc() – frees any dynamically allocated portions of the process  
++
++remove_proc() – removes the proc from the linked list and updates pointers. 
++
++
++getpid(): 
++
++This function will access the pid field of the calling process and return the pid. 
++
++getppid():
++
++This function will find the pid of the calling process in the process table and save the ppid field. It will then search the table for the ppid. If the ppid has exited or does not exist, it will return -1. Otherwise it will return the ppid.
++
++
++fork(): 
++
++Fork will create a copy of the current process. First we will create a separate user address space that is the same size as the current process’s address space. A new process will be created and added to the process table and the pid and ppid fields will be updated. We will then copy the parent’s trapframe and address space contents to the child’s trapframe and address space using md_forkentry(). Finally, the parent will return the child’s pid and the child will return 0. We will implement some logic in function to handle this case. If the ppid is the same as the process’s  pid, then return 0. Otherwise, return the pid of the child of that process. Last, we will give control back to usermode (using mips_usermode()).  
++
++execv():
++
++This function replaces the current process with the given new program.The pid of the process will remain the same. We will copy the arguments from user space into th kernel buffer using kmalloc() to allocate space in the kernel and copyin() to copy the arguments from the user space to the kernel space. Then we will open the executable and use kmalloc() and copy the elf into the space. Then we will copy arguments from the kernel buffer into the user stack using copyout(), increment the process counter (tf->tf_epc+=4), and return to user mode. 
++
++
++waitpid(): 
++
++This function waits for the process with that pid to exit and returns the exit code. Our restriction is that only parent processes can wait on the given process. In kernel mode we will check the process table for the process pid. If the exit status of the given pid is not NULL, it has exited. We will save the exit status and then remove the child from the process table and release its resources. We will then go back into usermode and return the exit status that we saved previously. If the process with the given pid has not exited, the thread representing the calling process will sleep and be woken up when that process has exited. 
++
++
++_exit()
++
++This function terminates the current process. We will go into the kernel space and change the state of the process to terminated/zombie. We will then release all resources associated with the process, but the process itself will not be killed. If a parent is waiting, it will be notified of the change in status. If the parent is not yet waiting, resources will be deallocated, but the process with its exit status and pid will remain in the table. We will then increment the process counter (tf->tf_epc+=4) and go back to usermode. 
++
++
++Responsibilities of the Team Members:
++
++As in the last project, we will meet in-person several times a week to work on the project. When we meet we talk through the algorithms, implement them, and test the solutions together. We find that it is easier to find optimized solutions this way rather than splitting up the work and working independently. 
+diff --git a/asst2-part2/Design.txt b/asst2-part2/Design.txt
+new file mode 100644
+index 0000000..9b8e937
+--- /dev/null
++++ b/asst2-part2/Design.txt
+@@ -0,0 +1,167 @@
++﻿Kaitlin O’Leary - G01372290
++Shalini Maknoor - G01503797
++
++
++PA2 Part 2 Design Document 
++
++
++HIGH-LEVEL DESCRIPTION OF APPROACH
++
++
++To approach this problem, we needed to create a method for tracking the current processes and their pids. We created an array that serves as the process table in thread.c. We used index +1 as the pid for the process in that location. We then added several fields to the thread structure to track the pid, ppid, exit status, etc (see below for a full list and descriptions of the fields added). In our implementation, we used a thread to represent a process because this is a 1:1 system. We also used locks throughout to synchronize the code. We changed menu.c and runprogram() to handle command line arguments. In this design, the system works both with and without command line arguments. 
++
++
++When threads are created in thread_create(), the fields are initialized and the thread is added to the first NULL place in the process table array and assigned a pid of index+1. A process is removed from the table just before it exits after its exit code and pid are saved to its parent process’s structure. The parent retrieves the exit status during waitpid(). If the child is not finished executing, the parent sleeps and is woken by the child just before it exits after its exit code and pid are saved to the parent’s structure and the child is removed from the process table. The parent can then retrieve the exit status from its structure. 
++
++
++
++
++DETAILED DESCRIPTION OF IMPLEMENTATION 
++
++
++Process Table 
++
++
++We created a global array of thread pointers in thread.c to function as the process table. When a new process is created, it is added to the first NULL spot in the array. Then index+1 is assigned as that process’s PID. The process is created, added to the array, and the pid is generated in thread_create(). A process is removed from the table just before it exits after its exit code and pid are saved to its parent process’s structure.  After a process is removed, its pid can be reused by a newly created process. We also implemented a lock for the table so only one thread is updating the table at a time. We also added fields to the thread structure (see below).
++
++
++
++
++Helper functions
++
++
++getProcess() in thread.c
++
++
++In thread.c we added a helper function getProcess(). This function takes a pid and searches the process table for a process with that pid. It then returns a pointer to that process. If it is not found, it returns NULL. 
++
++
++procTableLock_init() in thread.c 
++
++
++In thread.c we added a helper function procTableLock_init() that creates procTableLock that is used for synchronization. 
++
++
++
++
++Fields added to the thread structure: 
++
++pid
++	the pid of the process, initialized to -1 
++ppid 
++	the pid of the parent process, initialized to -1 
++exit_status 
++	the exit status of the process, initialized to -1 
++waitingParent 
++	this is a pointer to a parent that is waiting for the process to finish, initialized to NULL
++lock
++	a lock for the process, created in thread_create() 
++is_zombie 
++	a 0/1 field that indicates if the thread is about to enter a zombie state, initialized to 0
++err 
++	used to save an error if one occurs and to retrieve it in syscall.c, initialized to 0
++child_exit_status 
++	exit status of the child, if child has not exited it is -1 
++child_pid
++	pid of the child, if no child it is -1 
++
++
++
++
++getpid() 
++
++
++Our getpid() implementation was rather simple. We assert that the thread is not NULL and then return the pid field of the current process. This function must be successful each time (no errors). 
++
++
++
++
++getppid()
++
++
++In this function, it returns the parent pid of the process, if it exists. If the parent either doesn’t exist or has already exited, it returns -1. When the thread is created, ppid is initialized to -1. Using the helper function getProcess(), it searches for the process with the ppid of the current process. If getProcess() returns NULL, the process does not exist and the function returns -1. The is_zombie field of a process indicates if it is about to exit and enter a zombie state. If the process found by getProcess() has a value of 1 for is_zombie, -1 is returned. Finally, the shell process will always be the process with a pid of 1. If the current process’s parent pid is 1, then -1 is also returned. Otherwise, the value stored in the current process’s ppid field is returned. -1 indicates that there was an error or the parent has already exited. 
++
++
++
++
++fork() 
++
++
++The fork() function creates a new process and copies the address space of the current process to create a child process. The two processes then continue executing. We passed the trapframe to sys_fork(). A new trapframe is allocated and created for the child process. 
++
++
++Then thread_fork() is called on the new child process with a function of md_forkentry that executes when a child is created. In thread_fork(), the child process is created and added to the process table with a call to fork_create(). A stack is then allocated for the child and a magic number is added to the bottom of the stack. The child then inherits the current directory. Next the parent’s address space is copied to the child’s address space. If this fails, the child is freed. Otherwise, the ppid of the child is updated to be the current process’s pid and the process is activated. Next the pcb is set up. With interrupts off, it makes sure the sleeper array, zombie array, and scheduler have enough space. We then make the process runnable and increase the number of threads. 0 is returned on success. After make_runnable(), the child starts executing md_forkentry(). 
++
++
++In md_forkentry(), a pointer to the trapframe is passed in. The function copies the trapframe from kernel heap to stack. It then sets the parent’s trapframe’s v0 and a3 to 0 and moves epf forward by 4 bytes. Then it activates the child’s address space and returns to user mode from the child process. 
++
++
++The function returns the child’s pid to the parent and 0 to the child. If the return value is -1, we set the error field of the thread for use in syscall.c. 
++
++
++
++
++execv()
++
++
++This function replaces the currently executing program with a new process. The parameters are the new program name and a pointer to the arguments array. If the program name is null or the argument array is null, we return EFAULT. Kernel space is allocated for the program name and the program name is copied from user space to kernel space. If the allocation fails, ENOMEM is returned. Next the kernel buffer is allocated for transferring arguments. The argument pointers are copied from user space to kernel space using copyin(). When a NULL pointer in the args is reached, we have reached the end of the arguments and exit the loop. Otherwise, space is allocated for that string argument and it is copied into the kernel space array using copyin(). Each argument requires padding before it is copied into the user stack. To determine if padding is needed, the length of the current argument string is found. To calculate the padding the formula 4-(lenOfArg %4)%4 is used. The memset() function is used to initialize the extra space to 0. A null terminator is then added to the end of the string. After all arguments are added to the kernel buffer and they are padded, a NULL argument is added to the end. Next, the executable is opened and is loaded into the ELF. A new address space is then created and activated for the new program. The executable is then loaded into the new address space and the executable file is closed. The padded arguments are copied from the kernel buffer to the user stack. To do this, the user stack pointer is decremented by 4, the argument is copied to the user stack using copyout(), and the address of the argument is saved in the argv array.. This is repeated for each argument in the kernel buffer. The argv array is then ended with a NULL character. The stack pointer is then decremented by the size of the argv array and the array is copied to the user stack and the address of the argv array is saved. Then the function returns to user mode using md_usermode(). 
++
++
++
++waitpid()
++
++
++The function waitpid() is called by a parent process to wait for its child to exit. It takes the pid of the child, a status user pointer for the storage of the exit status of the child, and an options integer (always 0 in this case). It returns the pid of the child and stores the exit status in the status pointer. For use in this function, we added  child_pid and child_exit_status fields to the thread structure. 
++
++
++First, the parameters are validated. If options is not 0, the error field for the process is set to EINVAL and -1 is returned. The status pointer is then validated. As part of the function, copyin() validates the pointer before it copies anything. So to validate the status pointer, we used copyin(). If copyin() returns anything except 0, it encounters an error. In this case, the error field is set to that error and -1 is returned. Additionally, if status is NULL, the error field is set to EFAULT and -1 is returned. 
++
++
++Next, The child process is found in the process table using the helper function getProcess(). If this function returns NULL, the child does not exist in the table. In this case, either the child has already executed or the pid given is not a valid pid. If the parent’s child_exit_status field is not -1, then the child has already exited. If this is true, the child_exit_status of the parent is copied to the status user pointer using copyout and the pid of the child is returned. If the child cannot be found and the parent’s child_exit_status is -1, then the pid given is not valid and the error is set to EINVAL and -1 and returned. 
++
++
++Otherwise, the child has not finished executing. In this case, the parent is added to the waitingParent field of the child process. This ensures the child knows which process to wake up after it finishes executing. The parent thread is then put to sleep. In thread_exit(), right before the child finishes executing and goes into a ZOMB state, it removes itself from the process table and then wakes the parent. When the parent wakes up, it now holds the exit status of the child in its child_exit_status field. The child_exit_status is copied to the status user pointer using copyout() and the pid of the child is returned. 
++
++
++
++
++exit()
++
++
++The exit() function takes the exit code as the parameter. The exit code field of the process is set to that code. Then thead_exit() is called. In thread_exit(), the stack is checked to ensure no stack overflow. The virtual memory space is cleaned up, if needed, as well as the current working directory. Then the number of active threads is decreased and the is_zombie field is set to 1 because the process is exiting. Next, a pointer to the parent process is found by searching for the child’s ppid using the getProcess() helper function. The child_exit_status and child_pid fields of the parent process are updated with the child’s exit status and the child’s pid, respectively. The child then removes itself from the process table. If there is a parent waiting on this process from waitpid(), a pointer to that parent will be held in the waitingParent field of the child process. If there is a parent waiting, the parent is woken up. Then the child process is switched to a ZOMB state using mi_switch.
++
++
++
++
++PROS AND CONS 
++
++
++Pros: 
++- The system will not panic and will return appropriate error codes when needed 
++- System is relatively simple 
++- It makes use of the thread structure, limiting the extra code needed and increasing maintainability 
++- Array is used to track procTable, which is simpler than using something like a linked list. This increases the understandability and maintainability of the system. 
++- PIDs of processes that have exited and their codes have been checked by their parent are available for reuse.
++
++
++Cons: 
++- We are using the thread structure as the process. This works only as long as it is a 1:1 system. If the system type changes, there needs to be synchronization and a separate structure/method for managing processes. 
++- We use thread_yield() once in menu.c which is busy waiting (but doesn’t take much time) 
++- Array is used to track procTable, which is simpler than using something like a linked list. This may limit the flexibility of the table. 
++
++
++
++
++APPROACHES CONSIDERED 
++
++
++We originally thought about making a new structure and helper function for creating and managing the processes. In beginning the implementation, we discovered that this would add complexity and because this is a 1:1 system, we would essentially be re-writing code that was already written in thread.c. 
++
++
++When thinking about the procTable, we initially considered a linked list structure. This would give more control over the number of processes. Since adding and removing a process would have been more complex than doing it in an array, we chose to go with an array. The benefit to doing the array is that we could link the new pid number to where the process is in the array (the pid is the index + 1). If we did a linked list, we would need to come up with a different way to generate new pids and track the ones that are available for reuse. 
++
++
++In waitpid() the parent needs to wait for the child to finish executing before checking the exit code. Initially, we used thread_yield() to allow the parent to wait for the child. However, this is busy waiting because the parent is constantly checking to see if the child is done. We changed this to a sleep/wake method to avoid the busy waiting. The parent checks its child_exit_status field. If it is -1, the child has not exited yet and the parent goes to sleep. The child wakes the parent in therad_exit() right before they are switched to ZOMB state. 
++
++
++Originally in functions that return -1 on an error (like waitpid()), we were returning the error code directly. However, for these functions, -1 needs to be returned and the error needs to be sent to syscall.c in a different way. We went back and forth about what method to use. One potential way is to have a pointer in the parameters of the function. The pointer is set with the error code in the function if an error occurs. This pointer can then be accessed by the caller to get the error code. Another method is to add an error field to the thread structure. In the function, when an error occurs, the error field is updated to the error code. This code can then be accessed in syscall.c as a field of the current thread. We ultimately decided to go with the second method because it is clear which process the error occurred with.
+\ No newline at end of file
+diff --git a/kern/arch/mips/include/setjmp.h b/kern/arch/mips/include/setjmp.h
+index 1cda28c..83d4e2f 100644
+--- a/kern/arch/mips/include/setjmp.h
++++ b/kern/arch/mips/include/setjmp.h
+@@ -1,6 +1,7 @@
+ #ifndef _MIPS_SETJMP_H_
+ #define _MIPS_SETJMP_H_
+ 
++
+ /*
+  * Must save: s0-s8, sp, ra (11 registers)
+  * Don't change __JB_REGS without adjusting mips_setjmp.S accordingly.
+diff --git a/kern/arch/mips/mips/syscall.c b/kern/arch/mips/mips/syscall.c
+index 90c8936..da6ea31 100644
+--- a/kern/arch/mips/mips/syscall.c
++++ b/kern/arch/mips/mips/syscall.c
+@@ -1,11 +1,15 @@
+ #include <types.h>
+ #include <kern/errno.h>
+ #include <lib.h>
++#include<thread.h>
++#include<curthread.h>
+ #include <machine/pcb.h>
+ #include <machine/spl.h>
+ #include <machine/trapframe.h>
+ #include <kern/callno.h>
+ #include <syscall.h>
++#include <addrspace.h>
++
+ 
+ 
+ /*
+@@ -50,7 +54,8 @@ mips_syscall(struct trapframe *tf)
+ {
+ 	int callno;
+ 	int32_t retval;
+-	int err;
++	int err = 0; //initialize to 0 
++	//pid_t pid; 
+ 
+ 	assert(curspl==0);
+ 
+@@ -92,6 +97,43 @@ mips_syscall(struct trapframe *tf)
+ 		}
+ 		break;
+ 
++		case SYS_getpid:
++
++			retval = getpid();
++
++			//no errors to set because getpid() is always successful 
++
++			break;
++
++		case SYS_getppid:
++
++			retval = getppid();
++			break;
++		case SYS_fork:
++			retval = sys_fork(tf);
++
++			if (retval == -1){
++				err = curthread->err; 
++			}
++
++			break;
++		
++		case SYS_execv:
++		
++			err = sys_execv((char*)tf->tf_a0, (char**)tf->tf_a1);
++			break; 
++		
++		case SYS_waitpid:
++			retval = sys_waitpid(tf->tf_a0, (userptr_t) tf->tf_a1, tf->tf_a2);
++			if (retval == -1){
++				err = curthread->err; 
++			}
++			break;
++
++		case SYS__exit:
++			retval = sys_exit((int)tf->tf_a0);
++			break;
++
+ 	    default:
+ 		kprintf("Unknown syscall %d\n", callno);
+ 		err = ENOSYS;
+@@ -125,15 +167,16 @@ mips_syscall(struct trapframe *tf)
+ 	assert(curspl==0);
+ }
+ 
+-void
+-md_forkentry(struct trapframe *tf)
+-{
+-	/*
+-	 * This function is provided as a reminder. You need to write
+-	 * both it and the code that calls it.
+-	 *
+-	 * Thus, you can trash it and do things another way if you prefer.
+-	 */
++void md_forkentry(struct trapframe *tf_ptr) {
+ 
+-	(void)tf;
++    struct trapframe tf;
++    memcpy(&tf, tf_ptr, sizeof(struct trapframe));
++    kfree(tf_ptr);
++    tf.tf_v0 = 0;         
++    tf.tf_a3 = 0;         
++    tf.tf_epc += 4;      
++    as_activate(curthread->t_vmspace);
++    mips_usermode(&tf);
+ }
++
++
+diff --git a/kern/include/syscall.h b/kern/include/syscall.h
+index 339514d..0eecba6 100644
+--- a/kern/include/syscall.h
++++ b/kern/include/syscall.h
+@@ -7,5 +7,15 @@
+ 
+ int sys_reboot(int code);
+ 
++pid_t getpid();
++
++pid_t getppid(); 
++pid_t sys_fork(struct trapframe *tf);
++int sys_execv(char *program, char **args); 
++int sys_waitpid(pid_t pid, userptr_t status, int options);
++int sys_exit(int code); 
++
++void
++md_forkentry(struct trapframe *tf);
+ 
+ #endif /* _SYSCALL_H_ */
+diff --git a/kern/include/test.h b/kern/include/test.h
+index a8ddc44..656cb63 100644
+--- a/kern/include/test.h
++++ b/kern/include/test.h
+@@ -1,6 +1,8 @@
+ #ifndef _TEST_H_
+ #define _TEST_H_
+-
++extern struct lock *thread_lock;
++static volatile int thread_done = 0;
++extern int dummy_var ;
+ /*
+  * Declarations for test code and other miscellaneous functions.
+  */
+@@ -48,6 +50,6 @@ int nettest(int, char **);
+ void menu(char *argstr);
+ 
+ /* Routine for running userlevel test code. */
+-int runprogram(char *progname);
++int runprogram(char *progname, char **args, int argv);
+ 
+ #endif /* _TEST_H_ */
+diff --git a/kern/include/thread.h b/kern/include/thread.h
+index b051467..923b76b 100644
+--- a/kern/include/thread.h
++++ b/kern/include/thread.h
+@@ -8,6 +8,9 @@
+ /* Get machine-dependent stuff */
+ #include <machine/pcb.h>
+ 
++struct thread* procTable[128]; //table of all current procs 
++
++struct lock *procTableLock; //lock to protect procTable
+ 
+ struct addrspace;
+ 
+@@ -37,6 +40,19 @@ struct thread {
+ 	 * and is manipulated by the virtual filesystem (VFS) code.
+ 	 */
+ 	struct vnode *t_cwd;
++
++	/**
++	 * added to use thread as a process 
++	 */
++	pid_t pid; //pid of process
++	pid_t ppid; //pid of parent process 
++	int exit_status; //exit status of this process 
++	struct thread *waitingParent; //points to parent if the parent is waiting on the child 
++	struct lock *lock; //lock for proc 
++	int is_zombie; //T/F field that indicates if thread is about to enter a zombie state 
++	int err; //used to save an error if one occurs 
++	int child_exit_status; //exit status of the child (-1 if no child or child has not exited)
++	pid_t child_pid; //pid of the child (-1 if no child)
+ };
+ 
+ /* Call once during startup to allocate data structures. */
+@@ -108,5 +124,12 @@ void mi_threadstart(void *data1, unsigned long data2,
+ /* Machine dependent context switch. */
+ void md_switch(struct pcb *old, struct pcb *nu);
+ 
++/**
++ * Helper function to determine if a thread exists in the procTable. 
++ * return: if it exists, return a pointer to the thread, otherwise return NULL
++ */
++
++struct thread* getProcess(pid_t pid);
++
+ 
+ #endif /* _THREAD_H_ */
+diff --git a/kern/main/main.c b/kern/main/main.c
+index e049ca5..d35f4ba 100644
+--- a/kern/main/main.c
++++ b/kern/main/main.c
+@@ -76,6 +76,7 @@ boot(void)
+ 
+ 	ram_bootstrap();
+ 	scheduler_bootstrap();
++	
+ 	thread_bootstrap();
+ 	vfs_bootstrap();
+ 	dev_bootstrap();
+@@ -91,6 +92,7 @@ boot(void)
+ 	 */
+ 	assert(sizeof(userptr_t)==sizeof(char *));
+ 	assert(sizeof(*(userptr_t)0)==sizeof(char));
++
+ }
+ 
+ /*
+@@ -162,7 +164,6 @@ sys_reboot(int code)
+ int
+ kmain(char *arguments)
+ {
+-		
+ 	boot();
+ 
+ 	hello(); 
+diff --git a/kern/main/menu.c b/kern/main/menu.c
+index 6fc73c9..ec6fd0f 100644
+--- a/kern/main/menu.c
++++ b/kern/main/menu.c
+@@ -14,11 +14,14 @@
+ #include <vfs.h>
+ #include <sfs.h>
+ #include <test.h>
++#include <syscall.h>
++#include<synch.h>
+ 
+ #define _PATH_SHELL "/bin/sh"
+ 
+ #define MAXMENUARGS  16
+ 
++struct lock *thread_lock =  NULL;
+ void
+ getinterval(time_t s1, u_int32_t ns1, time_t s2, u_int32_t ns2,
+ 	    time_t *rs, u_int32_t *rns)
+@@ -51,27 +54,37 @@ static
+ void
+ cmd_progthread(void *ptr, unsigned long nargs)
+ {
+-	char **args = ptr;
++	char **args = (char**)ptr;
+ 	char progname[128];
+ 	int result;
+ 
+ 	assert(nargs >= 1);
+ 
+-	if (nargs > 2) {
+-		kprintf("Warning: argument passing from menu not supported\n");
+-	}
+-
+ 	/* Hope we fit. */
+ 	assert(strlen(args[0]) < sizeof(progname));
+ 
+-	strcpy(progname, args[0]);
++	if(strlen(args[0]) > sizeof(progname)){
++		kprintf("Error\n");
++		return;
++	}
+ 
+-	result = runprogram(progname);
++	strcpy(progname, args[0]);
++	
++	//Check if we have arguments or not.
++	
++	if (nargs == 1)
++		result = runprogram(progname, NULL,0);
++	else
++		result = runprogram(progname,args,nargs);
++		
+ 	if (result) {
+ 		kprintf("Running program %s failed: %s\n", args[0],
+ 			strerror(result));
+ 		return;
+ 	}
++	lock_acquire(thread_lock);
++    thread_done = 1;
++    lock_release(thread_lock);
+ 
+ 	/* NOTREACHED: runprogram only returns on error. */
+ }
+@@ -92,24 +105,68 @@ static
+ int
+ common_prog(int nargs, char **args)
+ {
+-	int result;
+-
+-#ifdef OPT_SYNCHPROBS
+-	kprintf("Warning: this probably won't work with a "
+-		"synchronization-problems kernel.\n");
+-#endif
+-
+-	result = thread_fork(args[0] /* thread name */,
+-			args /* thread arg */, nargs /* thread arg */,
+-			cmd_progthread, NULL);
+-	if (result) {
+-		kprintf("thread_fork failed: %s\n", strerror(result));
+-		return result;
+-	}
+-
+-	return 0;
++    int result;
++
++    // Allocate memory for arguments
++    char **newArgs = kmalloc(sizeof(char *) * nargs);
++    if (newArgs == NULL) {
++        return ENOMEM;
++    }
++
++    for (int j = 0; j < nargs; j++) {
++        newArgs[j] = kmalloc(strlen(args[j]) + 1);
++        if (newArgs[j] == NULL) {
++            for (int k = 0; k < j; k++) {
++                kfree(newArgs[k]);
++            }
++            kfree(newArgs);
++            return ENOMEM;
++        }
++        strcpy(newArgs[j], args[j]);
++    }
++
++    // Initialize lock if not already created
++    if (thread_lock == NULL) {
++        thread_lock = lock_create("thread_lock");
++        if (thread_lock == NULL) {
++            kprintf("Failed to create lock\n");
++            for (int k = 0; k < nargs; k++) {
++                kfree(newArgs[k]);
++            }
++            kfree(newArgs);
++            return ENOMEM;
++        }
++    }
++
++    lock_acquire(thread_lock);
++    thread_done = 0;          
++
++    // Fork the thread
++    result = thread_fork(args[0] /* thread name */,
++                         (void *)newArgs /* thread arg */,
++                         nargs /* thread arg */,
++                         cmd_progthread,
++                         NULL);
++    if (result) {
++        kprintf("thread_fork failed: %s\n", strerror(result));
++        for (int k = 0; k < nargs; k++) {
++            kfree(newArgs[k]);
++        }
++        kfree(newArgs);
++        lock_release(thread_lock); 
++        return result;
++    }
++
++    while (!thread_done) {
++        lock_release(thread_lock);
++        thread_yield(); 
++        lock_acquire(thread_lock);
++    }
++    lock_release(thread_lock);
++    return 0;
+ }
+ 
++
+ /*
+  * Command for running an arbitrary userlevel program.
+  */
+diff --git a/kern/thread/thread.c b/kern/thread/thread.c
+index 8f962ef..f03c9f6 100644
+--- a/kern/thread/thread.c
++++ b/kern/thread/thread.c
+@@ -12,6 +12,8 @@
+ #include <scheduler.h>
+ #include <addrspace.h>
+ #include <vnode.h>
++#include <synch.h>
++#include<string.h> 
+ 
+ /* States a thread can be in. */
+ typedef enum {
+@@ -21,6 +23,10 @@ typedef enum {
+ 	S_ZOMB,
+ } threadstate_t;
+ 
++struct thread* procTable[128] = {NULL};
++
++struct lock *procTableLock = NULL;
++
+ /* Global variable for the thread currently executing at any given time. */
+ struct thread *curthread;
+ 
+@@ -33,6 +39,12 @@ static struct array *zombies;
+ /* Total number of outstanding threads. Does not count zombies[]. */
+ static int numthreads;
+ 
++void procTableLock_init(void) {
++    procTableLock = lock_create("procTableLock");
++    if (procTableLock == NULL) {
++        panic("Failed to create procTableLock");
++    }
++}
+ /*
+  * Create a thread. This is used both to create the first thread's 
+  * thread structure and to create subsequent threads.
+@@ -42,6 +54,8 @@ static
+ struct thread *
+ thread_create(const char *name)
+ {
++
++	int newPID = -1; 
+ 	struct thread *thread = kmalloc(sizeof(struct thread));
+ 	if (thread==NULL) {
+ 		return NULL;
+@@ -57,9 +71,42 @@ thread_create(const char *name)
+ 	thread->t_vmspace = NULL;
+ 
+ 	thread->t_cwd = NULL;
++
++	thread -> pid = (pid_t) -1; 
++	thread ->ppid = (pid_t) -1; 
++	thread->exit_status = -1; //-1 indicates process has not yet exited 
++	thread->lock = lock_create("child lock");
++	thread->err = 0; 
++	thread->waitingParent = NULL;
++	thread->child_exit_status = -1; 
++	thread->child_pid = -1; 
+ 	
+-	// If you add things to the thread structure, be sure to initialize
+-	// them here.
++	if (thread->lock == NULL){
++		kfree(thread->t_name);
++		kfree(thread); 
++		return NULL; 
++	}
++
++	int spl = splhigh();
++	assert(curspl > 0);
++	 //find empty index in array 
++    for (int i = 0; i < 128; i++){
++        if (procTable[i] == NULL){
++            newPID = i+1; 
++			break; 
++        }
++    }
++
++	if (newPID == -1) 
++	{
++		kprintf("pid not assigned\n");
++		kfree(thread->t_name);
++		kfree(thread);
++		return NULL;
++	}
++    thread->pid = (pid_t) newPID;
++    procTable[newPID-1] = thread; 
++	splx(spl); 
+ 	
+ 	return thread;
+ }
+@@ -168,8 +215,9 @@ thread_panic(void)
+ struct thread *
+ thread_bootstrap(void)
+ {
+-	struct thread *me;
+ 
++	struct thread *me;
++	procTableLock_init();
+ 	/* Create the data structures we need. */
+ 	sleepers = array_create();
+ 	if (sleepers==NULL) {
+@@ -200,7 +248,6 @@ thread_bootstrap(void)
+ 
+ 	/* Set curthread */
+ 	curthread = me;
+-
+ 	/* Number of threads starts at 1 */
+ 	numthreads = 1;
+ 
+@@ -218,6 +265,8 @@ thread_shutdown(void)
+ 	sleepers = NULL;
+ 	array_destroy(zombies);
+ 	zombies = NULL;
++	lock_destroy(procTableLock);
++    procTableLock = NULL;
+ 	// Don't do this - it frees our stack and we blow up
+ 	//thread_destroy(curthread);
+ }
+@@ -241,7 +290,6 @@ thread_fork(const char *name,
+ 	if (newguy==NULL) {
+ 		return ENOMEM;
+ 	}
+-
+ 	/* Allocate a stack */
+ 	newguy->t_stack = kmalloc(STACK_SIZE);
+ 	if (newguy->t_stack==NULL) {
+@@ -261,10 +309,20 @@ thread_fork(const char *name,
+ 		VOP_INCREF(curthread->t_cwd);
+ 		newguy->t_cwd = curthread->t_cwd;
+ 	}
++	if (curthread->t_vmspace != NULL) {
++        result = as_copy(curthread->t_vmspace, &newguy->t_vmspace);
++        if (result) {
++            goto fail;
++        }
++    }
++
++	newguy -> ppid = curthread->pid; 
++	as_activate(newguy->t_vmspace);
+ 
+ 	/* Set up the pcb (this arranges for func to be called) */
+ 	md_initpcb(&newguy->t_pcb, newguy->t_stack, data1, data2, func);
+ 
++	 
+ 	/* Interrupts off for atomicity */
+ 	s = splhigh();
+ 
+@@ -281,6 +339,7 @@ thread_fork(const char *name,
+ 		goto fail;
+ 	}
+ 
++
+ 	/* Do the same for the scheduler. */
+ 	result = scheduler_preallocate(numthreads+1);
+ 	if (result) {
+@@ -316,6 +375,8 @@ thread_fork(const char *name,
+ 		*ret = newguy;
+ 	}
+ 
++	
++
+ 	return 0;
+ 
+  fail:
+@@ -429,44 +490,82 @@ mi_switch(threadstate_t nextstate)
+ void
+ thread_exit(void)
+ {
+-	if (curthread->t_stack != NULL) {
+-		/*
+-		 * Check the magic number we put on the bottom end of
+-		 * the stack in thread_fork. If these assertions go
+-		 * off, it most likely means you overflowed your stack
+-		 * at some point, which can cause all kinds of
+-		 * mysterious other things to happen.
+-		 */
+-		assert(curthread->t_stack[0] == (char)0xae);
+-		assert(curthread->t_stack[1] == (char)0x11);
+-		assert(curthread->t_stack[2] == (char)0xda);
+-		assert(curthread->t_stack[3] == (char)0x33);
+-	}
++    // Assert stack integrity to ensure no stack overflow
++    if (curthread->t_stack != NULL) {
++        assert(curthread->t_stack[0] == (char)0xae);
++        assert(curthread->t_stack[1] == (char)0x11);
++        assert(curthread->t_stack[2] == (char)0xda);
++        assert(curthread->t_stack[3] == (char)0x33);
++    }
++
++    // Disable interrupts before context switch
++    splhigh();
++
++    // Clean up virtual memory space (if applicable)
++    if (curthread->t_vmspace) {
++        struct addrspace *as = curthread->t_vmspace;
++        curthread->t_vmspace = NULL;
++        as_destroy(as);
++    }
++
++    // Clean up current working directory
++    if (curthread->t_cwd) {
++        VOP_DECREF(curthread->t_cwd);
++        curthread->t_cwd = NULL;
++    }
++
++	lock_acquire(procTableLock); 
++	if (curthread->exit_status == -1) {
++        curthread->exit_status = 0;  // Default exit status
++    }
++	
++    // Decrease the number of active threads
++    assert(numthreads > 0);
++    numthreads--;
+ 
+-	splhigh();
+ 
+-	if (curthread->t_vmspace) {
+-		/*
+-		 * Do this carefully to avoid race condition with
+-		 * context switch code.
+-		 */
+-		struct addrspace *as = curthread->t_vmspace;
+-		curthread->t_vmspace = NULL;
+-		as_destroy(as);
+-	}
++	//find parent
++	lock_release(procTableLock);
++	struct thread *parent = getProcess(curthread->ppid);
++	lock_acquire(procTableLock);
+ 
+-	if (curthread->t_cwd) {
+-		VOP_DECREF(curthread->t_cwd);
+-		curthread->t_cwd = NULL;
++	// kprintf("%d parent = %d\n", curthread->pid, parent->pid);
++
++	//make sure parent is not null 
++	if (parent != NULL){
++
++		//add exit code and child pid to parent's struct 
++		parent->child_exit_status = curthread->exit_status; 
++		parent->child_pid = curthread->pid;
++		
++		
+ 	}
+ 
+-	assert(numthreads>0);
+-	numthreads--;
+-	mi_switch(S_ZOMB);
++	
++
++	if (curthread->waitingParent != NULL) {
++			thread_wakeup(curthread->waitingParent);
++		}
++	
++	 //remove child from proc table 
++    for (int i = 0; i < 128; i++){
++        if (procTable[i] != NULL && procTable[i]->pid == curthread->pid){
++            procTable[i] = NULL; 
++            break; 
++        }
++    }
++
++	lock_release(procTableLock); 
+ 
+-	panic("Thread came back from the dead!\n");
++
++    // Switch the thread to a ZOMB state
++    mi_switch(S_ZOMB);
++
++    panic("Thread came back from the dead!\n");  // Should never reach here
+ }
+ 
++
++
+ /*
+  * Yield the cpu to another process, but stay runnable.
+  */
+@@ -520,6 +619,7 @@ thread_wakeup(const void *addr)
+ 	
+ 	for (i=0; i<array_getnum(sleepers); i++) {
+ 		struct thread *t = array_getguy(sleepers, i);
++		
+ 		if (t->t_sleepaddr == addr) {
+ 			
+ 			// Remove from list
+@@ -593,3 +693,33 @@ mi_threadstart(void *data1, unsigned long data2,
+ 	/* Done. */
+ 	thread_exit();
+ }
++
++
++/**
++ * Helper function to determine if a thread exists in the procTable. 
++ * param: pid of thread being searched for 
++ * return: if it exists, return a pointer to the thread, otherwise return NULL
++ */
++
++struct thread* getProcess(pid_t pid){	
++
++	int spl = splhigh();
++	assert(curspl > 0);
++	lock_acquire(procTableLock); 
++	
++	//loop through procTable to look for proc with given pid 
++	 for (int i = 0; i < 128; i++){
++        if (procTable[i] != NULL && procTable[i] -> pid == pid){
++			lock_release(procTableLock);
++			splx(spl); 
++            return procTable[i]; 
++            
++        }
++	 }
++
++	//release procTable 
++	lock_release(procTableLock); 
++	splx(spl); 
++	return NULL; 
++}
++
+diff --git a/kern/userprog/execv.c b/kern/userprog/execv.c
+new file mode 100644
+index 0000000..045a65c
+--- /dev/null
++++ b/kern/userprog/execv.c
+@@ -0,0 +1,196 @@
++#include <types.h>
++#include <lib.h>
++#include <thread.h>
++#include <curthread.h>
++#include <machine/trapframe.h>
++#include <kern/errno.h>
++#include <addrspace.h>
++#include <syscall.h>
++#include <kern/limits.h>
++#include <kern/unistd.h>
++#include <vfs.h>
++#include <string.h>
++#define MAX_ARGS 128
++
++
++int sys_execv(char *program, char **args){
++
++    
++    int openResult; 
++    int elfResult; 
++    int stackResult; 
++    struct vnode *vnode; 
++    vaddr_t entrypoint, stackptr;
++
++
++    //if either argument is null, return EFAULT
++    if (program == NULL || args == NULL){
++        return EFAULT;
++    }
++
++    //alloate kernel space for program name 
++    char *kernel_program = kmalloc(PATH_MAX); 
++    if (kernel_program == NULL){
++        return ENOMEM; 
++    }
++
++    //copy program name to kernel space 
++    int pathcopied = copyinstr((const_userptr_t)program, kernel_program, PATH_MAX, NULL);
++    if (pathcopied != 0){
++        kprintf("Error in allocating spcae in kernel\n");
++        kfree(kernel_program); 
++        return pathcopied; 
++    }
++    kprintf("name = %s\n", kernel_program); 
++
++    int argCounter = 0;
++    userptr_t argsPtr = NULL;
++    int copyResult = 0;
++    int nullFound = 0;
++
++// Allocate kernel buffer for the arguments
++    char **kernelBuffer = kmalloc(MAX_ARGS * sizeof(char *));
++    if (kernelBuffer == NULL) {
++        kfree(kernel_program);
++        return ENOMEM;
++    }
++
++// Step 1: Copy the argument pointers from user space to kernel space
++    while (!nullFound) {
++        copyResult = copyin((const_userptr_t)&args[argCounter], &argsPtr, sizeof(userptr_t));
++        if (copyResult != 0) {
++            kfree(kernel_program);
++            kfree(kernelBuffer);
++            return copyResult;
++        }
++
++        // Check if the argument pointer is NULL (end of arguments)
++        if (argsPtr == NULL) {
++            nullFound = 1;
++        } 
++        else{
++            // Increment the argument counter and copy the argument string
++            kernelBuffer[argCounter] = kmalloc(MAX_ARGS * sizeof(char));  // Allocate memory for the argument string
++            if (kernelBuffer[argCounter] == NULL) {
++                kfree(kernel_program);
++                for (int j = 0; j <= argCounter; j++){
++                    kfree(kernelBuffer[j]);
++                }
++                kfree(kernelBuffer);
++                return ENOMEM;
++            }
++
++            // Copy the actual argument string from user space to kernel space
++            copyResult = copyin((const_userptr_t)argsPtr, kernelBuffer[argCounter], MAX_ARGS * sizeof(char));
++            if (copyResult != 0) {
++                kfree(kernel_program);
++                for (int j = 0; j <= argCounter; j++){
++                    kfree(kernelBuffer[j]);
++                }
++                kfree(kernelBuffer);
++                return copyResult;
++            }
++            int padding = 0;
++            int padded_len = 0; 
++
++             if (padding != 0) {
++                memset(kernelBuffer[argCounter] + padded_len, 0, padding);
++                kernelBuffer[argCounter][padded_len + padding] = '\0';  // Null-terminate
++        }
++        argCounter++;
++        }
++    }
++   
++   //add NULL to end 
++    kernelBuffer[argCounter]= NULL;
++    //Step 2: open executable and load elf into it 
++    openResult = vfs_open(kernel_program, O_RDONLY, &vnode);
++    if (openResult){
++        kfree(kernel_program);
++        kprintf("file opening FAILED -- %d\n", openResult);
++        for (int j = 0; j <= argCounter; j++){
++                    kfree(kernelBuffer[j]);
++                }
++        kfree(kernelBuffer);
++        return openResult; 
++    }
++
++
++	/* Create a new address space. */
++	curthread->t_vmspace = as_create();
++	if (curthread->t_vmspace==NULL) {
++		vfs_close(vnode);
++		return ENOMEM;
++	}
++
++	/* Activate it. */
++	as_activate(curthread->t_vmspace);
++
++    /* Load the executable. */
++	elfResult = load_elf(vnode, &entrypoint);
++	if (elfResult) {
++		vfs_close(vnode);
++		return elfResult;
++	}
++
++	vfs_close(vnode);
++
++    //Step 3: Copy arguments from kernel buffer into user stack
++
++    /* Define the user stack in the address space */
++	stackResult = as_define_stack(curthread->t_vmspace, &stackptr);
++	if (stackResult) {
++		return stackResult;
++	}
++    int outResult; 
++    vaddr_t argv[argCounter+1];
++
++    for (int m = 0; m < argCounter; m++){
++        //decrease stackptr by 4 
++        stackptr -= 4;
++        outResult = copyout(kernelBuffer[m], (userptr_t)stackptr, 4);
++        if (outResult != 0){
++            kfree(kernel_program); //free memory 
++            for (int j = 0; j <= argCounter; j++){
++                        kfree(kernelBuffer[j]);
++                    }
++            kfree(kernelBuffer);
++        return openResult; //return error
++        }
++        argv[m] = stackptr; 
++    }
++
++    argv[argCounter] = 0; 
++
++    size_t sizeOfArgv = (argCounter + 1)*sizeof(vaddr_t); 
++    int argvCopyResult; 
++    stackptr -= sizeOfArgv; 
++
++
++    //copy argv to stack 
++    argvCopyResult = copyout(argv, (userptr_t)stackptr, sizeOfArgv); 
++    if(argvCopyResult != 0){
++        kprintf("argv copying to stack failed -- %d\n", argvCopyResult); 
++        kfree(kernel_program); //free memory 
++            for (int j = 0; j <= argCounter; j++){
++                        kfree(kernelBuffer[j]);
++                    }
++            kfree(kernelBuffer);
++
++    }
++
++    //record address of argv array 
++    vaddr_t argvAddr = stackptr; 
++
++
++    //Step 4: return to usermode 
++	md_usermode(argCounter /*argc*/, (userptr_t)argvAddr /*userspace addr of argv*/,
++		    stackptr, entrypoint);
++	
++	/* md_usermode does not return */
++	panic("md_usermode returned\n");
++	return EINVAL;
++    return 0; 
++}
++
++
+diff --git a/kern/userprog/exit.c b/kern/userprog/exit.c
+new file mode 100644
+index 0000000..9c1b444
+--- /dev/null
++++ b/kern/userprog/exit.c
+@@ -0,0 +1,26 @@
++#include <types.h> 
++#include <lib.h>
++#include <curthread.h>
++#include <thread.h>
++#include <kern/errno.h>
++#include <synch.h>
++#include <machine/spl.h>
++
++
++
++int sys_exit(int code){
++
++    int spl = splhigh();
++    lock_acquire(procTableLock); 
++
++    //set exit status 
++    curthread->exit_status = code; 
++  
++    // kprintf("thread %d exiting with code of %d\n", curthread->pid, curthread->exit_status);
++
++    lock_release(procTableLock); 
++    splx(spl); 
++    //exit thread
++    thread_exit(); 
++    return code; //this line should never be reached 
++}
+\ No newline at end of file
+diff --git a/kern/userprog/files.mk b/kern/userprog/files.mk
+index 07b0ebb..eb04130 100644
+--- a/kern/userprog/files.mk
++++ b/kern/userprog/files.mk
+@@ -1 +1 @@
+-SRCS-y += loadelf.c runprogram.c uio.c
+\ No newline at end of file
++SRCS-y += loadelf.c runprogram.c uio.c getpid.c getppid.c fork.c execv.c waitpid.c exit.c 
+\ No newline at end of file
+diff --git a/kern/userprog/fork.c b/kern/userprog/fork.c
+new file mode 100644
+index 0000000..d28c91d
+--- /dev/null
++++ b/kern/userprog/fork.c
+@@ -0,0 +1,32 @@
++#include <types.h>
++#include <lib.h>
++#include <thread.h>
++#include <curthread.h>
++#include <machine/trapframe.h>
++#include <kern/errno.h>
++#include <addrspace.h>
++#include <syscall.h>
++
++
++pid_t sys_fork(struct trapframe *tf){
++    struct thread *child;
++    struct trapframe *child_tf;
++    int result;
++
++    child_tf = kmalloc(sizeof(struct trapframe));
++    if (child_tf == NULL) {
++        curthread->err = ENOMEM; 
++        return -1; 
++    }
++    *child_tf = *tf;
++
++    result = thread_fork("child", child_tf, 0, (void *)md_forkentry, &child);
++
++    if (result) {
++        kfree(child_tf);
++        curthread->err = result; 
++        return -1;
++    }
++    return child->pid;
++}
++
+diff --git a/kern/userprog/getpid.c b/kern/userprog/getpid.c
+new file mode 100644
+index 0000000..556eec9
+--- /dev/null
++++ b/kern/userprog/getpid.c
+@@ -0,0 +1,11 @@
++#include <types.h> 
++#include <lib.h>
++#include <curthread.h>
++#include <thread.h>
++
++
++
++pid_t getpid(){
++    assert(curthread != NULL)
++    return curthread->pid; 
++}
+\ No newline at end of file
+diff --git a/kern/userprog/getppid.c b/kern/userprog/getppid.c
+new file mode 100644
+index 0000000..2c06e5f
+--- /dev/null
++++ b/kern/userprog/getppid.c
+@@ -0,0 +1,37 @@
++#include <types.h> 
++#include <lib.h>
++#include <thread.h>
++#include <curthread.h>
++
++
++
++pid_t getppid(){
++
++    struct thread* foundProcess; 
++    pid_t new_ppid; 
++
++    new_ppid = curthread->ppid; 
++
++    kprintf("curthread -> ppid = %d\n", curthread->ppid);
++
++    //find process in procTable if it exists 
++    foundProcess = getProcess(new_ppid);
++
++    //if not in table, return -1 
++    if (foundProcess == NULL){
++        return -1; 
++    }
++
++    //if parent has exited, return -1 
++    if (foundProcess->is_zombie == 1){
++        return -1; 
++    }
++
++    //if parent is the shell 
++    if (new_ppid == 1){
++        return -1; 
++    }
++
++    //otherwise return parent pid 
++    return new_ppid;
++}
+\ No newline at end of file
+diff --git a/kern/userprog/runprogram.c b/kern/userprog/runprogram.c
+index 7473e27..21282bc 100644
+--- a/kern/userprog/runprogram.c
++++ b/kern/userprog/runprogram.c
+@@ -1,9 +1,3 @@
+-/*
+- * Sample/test code for running a user program.  You can use this for
+- * reference when implementing the execv() system call. Remember though
+- * that execv() needs to do more than this function does.
+- */
+-
+ #include <types.h>
+ #include <kern/unistd.h>
+ #include <kern/errno.h>
+@@ -17,60 +11,90 @@
+ 
+ /*
+  * Load program "progname" and start running it in usermode.
+- * Does not return except on error.
+- *
+- * Calls vfs_open on progname and thus may destroy it.
++ * Supports command-line arguments.
+  */
+-int
+-runprogram(char *progname)
+-{
+-	struct vnode *v;
+-	vaddr_t entrypoint, stackptr;
+-	int result;
++int runprogram(char *progname, char **args, int argc) {
++    struct vnode *v;
++    vaddr_t entrypoint, stackptr;
++    int result;
++
++    // Add null checks
++    if (progname == NULL) {
++        return EFAULT;
++    }
++    if (argc > 0 && args == NULL) {
++        return EFAULT;
++    }
++
++    // Open the executable file
++    result = vfs_open(progname, O_RDONLY, &v);
++    if (result) {
++        return result;
++    }
++
++    // Create a new address space
++    assert(curthread->t_vmspace == NULL);
++    curthread->t_vmspace = as_create();
++    if (curthread->t_vmspace == NULL) {
++        vfs_close(v);
++        return ENOMEM;
++    }
++
++    // Activate the new address space
++    as_activate(curthread->t_vmspace);
+ 
+-	/* Open the file. */
+-	result = vfs_open(progname, O_RDONLY, &v);
+-	if (result) {
+-		return result;
+-	}
++    // Load the ELF executable
++    result = load_elf(v, &entrypoint);
++    if (result) {
++        vfs_close(v);
++        return result;
++    }
+ 
+-	/* We should be a new thread. */
+-	assert(curthread->t_vmspace == NULL);
++    // Close the executable file
++    vfs_close(v);
+ 
+-	/* Create a new address space. */
+-	curthread->t_vmspace = as_create();
+-	if (curthread->t_vmspace==NULL) {
+-		vfs_close(v);
+-		return ENOMEM;
+-	}
++    // Define the user stack
++    result = as_define_stack(curthread->t_vmspace, &stackptr);
++    if (result) {
++        return result;
++    }
++    if(argc !=1){
++    // Copy arguments from kernel space to user stack
++    vaddr_t argv[argc + 1];
++    for (int m = argc - 1; m >= 0; m--) {
++        size_t len = strlen(args[m]) + 1;  // Include null terminator
++        // Decrease stack pointer by actual string length
++        stackptr -= len;
++        // Copy the string to user stack
++        int copyResult = copyoutstr(args[m], (userptr_t)stackptr, len, NULL);
++        if (copyResult != 0) {
++            return copyResult;
++        }
+ 
+-	/* Activate it. */
+-	as_activate(curthread->t_vmspace);
++        argv[m] = stackptr;
++    }
+ 
+-	/* Load the executable. */
+-	result = load_elf(v, &entrypoint);
+-	if (result) {
+-		/* thread_exit destroys curthread->t_vmspace */
+-		vfs_close(v);
+-		return result;
+-	}
++    argv[argc] = 0;  // Null-terminate argv array
+ 
+-	/* Done with the file now. */
+-	vfs_close(v);
++    // Align stack pointer
++    stackptr = (stackptr & ~3);  // Align to 4 bytes
+ 
+-	/* Define the user stack in the address space */
+-	result = as_define_stack(curthread->t_vmspace, &stackptr);
+-	if (result) {
+-		/* thread_exit destroys curthread->t_vmspace */
+-		return result;
+-	}
++    // Copy argv array to user stack
++    size_t argv_size = (argc + 1) * sizeof(vaddr_t);
++    stackptr -= argv_size;
++    int argvCopyResult = copyout(argv, (userptr_t)stackptr, argv_size);
++    if (argvCopyResult != 0) {
++        return argvCopyResult;
++    }
+ 
+-	/* Warp to user mode. */
+-	md_usermode(0 /*argc*/, NULL /*userspace addr of argv*/,
++    // Enter user mode
++    md_usermode(argc, (userptr_t)stackptr, stackptr, entrypoint);
++    }
++    else{
++        md_usermode(0 /*argc*/, NULL /*userspace addr of argv*/,
+ 		    stackptr, entrypoint);
+-	
+-	/* md_usermode does not return */
+-	panic("md_usermode returned\n");
+-	return EINVAL;
+-}
++    }
+ 
++    panic("md_usermode returned\n");
++    return EINVAL;
++}
+\ No newline at end of file
+diff --git a/kern/userprog/waitpid.c b/kern/userprog/waitpid.c
+new file mode 100644
+index 0000000..0a9ce0d
+--- /dev/null
++++ b/kern/userprog/waitpid.c
+@@ -0,0 +1,88 @@
++#include <types.h> 
++#include <lib.h>
++#include <curthread.h>
++#include <thread.h>
++#include <kern/errno.h>
++#include <synch.h>
++#include <machine/spl.h>
++
++int sys_waitpid(pid_t pid, userptr_t status, int options) {
++    int ptrCheck; 
++    int statusCheck; 
++
++    lock_acquire(procTableLock); 
++    assert (pid > 0 && pid < 128); 
++
++    //if options is not valid, return -1 and set error to EINVAL
++    if (options != 0) {
++        
++        curthread->err = EINVAL; 
++        return -1; 
++    }
++
++    // Validate status pointer
++    if (status == NULL) {
++        curthread->err = EFAULT; 
++        return -1; 
++    }
++    
++    //if status can be successfully copied in, then its pointer if valid 
++    ptrCheck = copyin(status, &statusCheck, sizeof(int));
++    if (ptrCheck != 0){
++        curthread->err = ptrCheck;
++        return -1; 
++    }
++
++    lock_release(procTableLock); 
++    struct thread *childProc = getProcess(pid); 
++    lock_acquire(procTableLock); 
++    
++    
++    // kprintf("child exit status = %d\n", curthread->child_exit_status);
++    //if child proc with this pid does not exist, child has already finished, return child_exit_status of current thread
++    if (childProc == NULL && curthread->child_exit_status != -1){
++        int result = copyout(&curthread->child_exit_status, status, sizeof(int));
++        if (result != 0) {
++            curthread->err = EFAULT;
++            lock_release(procTableLock); 
++            return -1;
++        }
++        lock_release(procTableLock); 
++        return (curthread->child_pid); 
++    }
++
++    //otherwise pid is not valid 
++    else if (childProc == NULL && curthread->child_exit_status == -1){
++        kprintf("invalid child: pid = %d, exit status = %d\n", curthread->child_pid, curthread->child_exit_status);
++        lock_release(procTableLock); 
++        curthread->err = EINVAL;
++        return -1; 
++    }
++
++    //make sure childProc is not null 
++    assert(childProc != NULL);
++   
++    int spl = splhigh(); 
++    childProc->waitingParent = curthread;
++
++    lock_release(procTableLock);
++    //Sleep parent
++    thread_sleep(curthread); 
++    lock_acquire(procTableLock); 
++
++    //after waking, copy out exit status 
++    int result = copyout(&curthread->child_exit_status, status, sizeof(int));
++
++    if (result != 0) {
++        curthread->err = EFAULT; 
++        lock_release(procTableLock); 
++        splx(spl);
++        return -1; 
++    }
++    
++    lock_release(procTableLock);
++    splx(spl);
++    
++    return curthread->child_pid;
++}
++
+diff --git a/testbin/execvtest/.gitignore b/testbin/execvtest/.gitignore
+new file mode 100644
+index 0000000..be10b11
+--- /dev/null
++++ b/testbin/execvtest/.gitignore
+@@ -0,0 +1,2 @@
++# Ignore the compiled executable for each testbin
++execvtest
+diff --git a/testbin/execvtest/Makefile b/testbin/execvtest/Makefile
+new file mode 100644
+index 0000000..c9de715
+--- /dev/null
++++ b/testbin/execvtest/Makefile
+@@ -0,0 +1,6 @@
++# Makefile for execvtest
++
++SRCS-y=execvtest.c
++TARGET_NAME=execvtest
++
++include ../../mk/build-testbin.mk
+diff --git a/testbin/execvtest/execvtest.c b/testbin/execvtest/execvtest.c
+new file mode 100644
+index 0000000..1d904c3
+--- /dev/null
++++ b/testbin/execvtest/execvtest.c
+@@ -0,0 +1,29 @@
++#include <types.h>
++#include <unistd.h>
++#include <stdlib.h>
++#include <stdio.h>
++#include <string.h>
++
++
++
++int main() {
++    const char *filename = "/testbin/add";  // Program path (const)
++    char *args[4];                         // Writable array of pointers
++
++    // Allocate writable copies of arguments
++    args[0] = (char *)"add";               // Duplicate string for safety
++    args[1] = (char *)("3");
++    args[2] = (char *)("4");
++    args[3] = NULL;
++
++    pid_t pid = fork();
++    if (pid == 0) {        
++        printf("Exev test\n");             // Child process
++        execv((const char *)filename, args);             // Pass filename and args
++        // perror("execv failed");
++        // exit(EXIT_FAILURE);
++    }
++
++    printf("Parent process continuing\n");
++    return 0;
++}
+diff --git a/testbin/exittest/.gitignore b/testbin/exittest/.gitignore
+new file mode 100644
+index 0000000..b639c19
+--- /dev/null
++++ b/testbin/exittest/.gitignore
+@@ -0,0 +1,2 @@
++# Ignore the compiled executable for each testbin
++exittest
+diff --git a/testbin/exittest/Makefile b/testbin/exittest/Makefile
+new file mode 100644
+index 0000000..771d067
+--- /dev/null
++++ b/testbin/exittest/Makefile
+@@ -0,0 +1,6 @@
++# Makefile for exittest
++
++SRCS-y=exittest.c
++TARGET_NAME=exittest
++
++include ../../mk/build-testbin.mk
+diff --git a/testbin/exittest/exittest.c b/testbin/exittest/exittest.c
+new file mode 100644
+index 0000000..f0bc313
+--- /dev/null
++++ b/testbin/exittest/exittest.c
+@@ -0,0 +1,36 @@
++/*
++ * exittest - does something. (You decide!)
++ */
++
++/* Include some standard headers (add more as needed) */
++#include <types.h>
++#include <unistd.h>
++#include <string.h>
++#include <stdlib.h>
++#include <stdio.h>
++#include <err.h>
++
++int
++main() {
++    
++    pid_t pid; 
++
++    pid = fork(); 
++
++    if (pid < 0){
++        printf("fork failed");
++        return -1; 
++    }
++
++    if (pid ==0){ //is child 
++        printf("child exiting with code 10\n");
++        exit(10); 
++    }
++
++    printf("parent exiting with code 80\n"); 
++    exit(80); 
++
++    printf("all exited\n");
++    return 0; 
++}
++
+diff --git a/testbin/forktest/forktest.c b/testbin/forktest/forktest.c
+index 50624df..a979fd2 100644
+--- a/testbin/forktest/forktest.c
++++ b/testbin/forktest/forktest.c
+@@ -10,6 +10,7 @@
+ #include <unistd.h>
+ #include <string.h>
+ #include <stdlib.h>
++
+ #include <stdio.h>
+ #include <err.h>
+ 
+@@ -28,6 +29,7 @@ dofork(void)
+ {
+ 	int pid;
+ 	pid = fork();
++	// printf("In test : %d\n",pid);
+ 	if (pid < 0) {
+ 		warn("fork");
+ 	}
+diff --git a/testbin/forktest1/.gitignore b/testbin/forktest1/.gitignore
+new file mode 100644
+index 0000000..3b942ec
+--- /dev/null
++++ b/testbin/forktest1/.gitignore
+@@ -0,0 +1,2 @@
++# Ignore the compiled executable for each testbin
++forktest1
+diff --git a/testbin/forktest1/Makefile b/testbin/forktest1/Makefile
+new file mode 100644
+index 0000000..4a10be6
+--- /dev/null
++++ b/testbin/forktest1/Makefile
+@@ -0,0 +1,6 @@
++# Makefile for forktest1
++
++SRCS-y=forktest1.c
++TARGET_NAME=forktest1
++
++include ../../mk/build-testbin.mk
+diff --git a/testbin/forktest1/forktest1.c b/testbin/forktest1/forktest1.c
+new file mode 100644
+index 0000000..a3cd4e8
+--- /dev/null
++++ b/testbin/forktest1/forktest1.c
+@@ -0,0 +1,36 @@
++/*
++ * getpidtest - does something. (You decide!)
++ */
++
++/* Include some standard headers (add more as needed) */
++#include <types.h>
++#include <unistd.h>
++#include <string.h>
++#include <stdio.h>
++#include <err.h>
++
++// int
++// main() {
++//     int pid;
++//     pid = fork();
++//     printf("fork test: %d\n", pid);
++//     if (pid == 0) {
++//     printf("Child process\n");
++// } else {
++//     printf("Parent process with child PID = %d\n", pid);
++// }
++//     return 0; 
++// }
++
++int main() {
++  printf("A\n");
++  fork();
++  printf("B\n");
++  if( fork() ) {
++    printf("C\n");
++  }
++  else {
++    printf("D\n");
++  }
++  return 0;
++}
+diff --git a/testbin/getpidtest/.gitignore b/testbin/getpidtest/.gitignore
+new file mode 100644
+index 0000000..24de5d9
+--- /dev/null
++++ b/testbin/getpidtest/.gitignore
+@@ -0,0 +1,2 @@
++# Ignore the compiled executable for each testbin
++getpidtest
+diff --git a/testbin/getpidtest/Makefile b/testbin/getpidtest/Makefile
+new file mode 100644
+index 0000000..8a093e3
+--- /dev/null
++++ b/testbin/getpidtest/Makefile
+@@ -0,0 +1,6 @@
++# Makefile for getpidtest
++
++SRCS-y=getpidtest.c
++TARGET_NAME=getpidtest
++
++include ../../mk/build-testbin.mk
+diff --git a/testbin/getpidtest/getpidtest.c b/testbin/getpidtest/getpidtest.c
+new file mode 100644
+index 0000000..7269d59
+--- /dev/null
++++ b/testbin/getpidtest/getpidtest.c
+@@ -0,0 +1,19 @@
++/*
++ * getpidtest - does something. (You decide!)
++ */
++
++/* Include some standard headers (add more as needed) */
++#include <types.h>
++#include <unistd.h>
++#include <string.h>
++#include <stdio.h>
++#include <err.h>
++
++int
++main() {
++    /* Your code here... */
++    
++    printf("test pid = %d", getpid());
++
++    return 0; 
++}
+diff --git a/testbin/getppid_parentDoesNotExist/.gitignore b/testbin/getppid_parentDoesNotExist/.gitignore
+new file mode 100644
+index 0000000..c35adbe
+--- /dev/null
++++ b/testbin/getppid_parentDoesNotExist/.gitignore
+@@ -0,0 +1,2 @@
++# Ignore the compiled executable for each testbin
++getppid_parentDoesNotExist
+diff --git a/testbin/getppid_parentDoesNotExist/Makefile b/testbin/getppid_parentDoesNotExist/Makefile
+new file mode 100644
+index 0000000..7609b58
+--- /dev/null
++++ b/testbin/getppid_parentDoesNotExist/Makefile
+@@ -0,0 +1,6 @@
++# Makefile for getppid_parentDoesNotExist
++
++SRCS-y=getppid_parentDoesNotExist.c
++TARGET_NAME=getppid_parentDoesNotExist
++
++include ../../mk/build-testbin.mk
+diff --git a/testbin/getppid_parentDoesNotExist/getppid_parentDoesNotExist.c b/testbin/getppid_parentDoesNotExist/getppid_parentDoesNotExist.c
+new file mode 100644
+index 0000000..19c846a
+--- /dev/null
++++ b/testbin/getppid_parentDoesNotExist/getppid_parentDoesNotExist.c
+@@ -0,0 +1,25 @@
++/*
++ * getppid_parentDoesNotExist - does something. (You decide!)
++ */
++
++/* Include some standard headers (add more as needed) */
++#include <types.h>
++#include <unistd.h>
++#include <string.h>
++#include <stdlib.h>
++#include <stdio.h>
++#include <err.h>
++
++int
++main() {
++
++    int result; 
++
++    result = getppid(); 
++    printf("getppid() = %d\n", result); //should return -1 because only shell is the parent 
++
++  
++
++    return 0; 
++    
++}
+diff --git a/testbin/getppid_parentExists/.gitignore b/testbin/getppid_parentExists/.gitignore
+new file mode 100644
+index 0000000..b240cce
+--- /dev/null
++++ b/testbin/getppid_parentExists/.gitignore
+@@ -0,0 +1,2 @@
++# Ignore the compiled executable for each testbin
++getppid_parentExists
+diff --git a/testbin/getppid_parentExists/Makefile b/testbin/getppid_parentExists/Makefile
+new file mode 100644
+index 0000000..bc8cb05
+--- /dev/null
++++ b/testbin/getppid_parentExists/Makefile
+@@ -0,0 +1,6 @@
++# Makefile for getppid_parentExists
++
++SRCS-y=getppid_parentExists.c
++TARGET_NAME=getppid_parentExists
++
++include ../../mk/build-testbin.mk
+diff --git a/testbin/getppid_parentExists/getppid_parentExists.c b/testbin/getppid_parentExists/getppid_parentExists.c
+new file mode 100644
+index 0000000..8159263
+--- /dev/null
++++ b/testbin/getppid_parentExists/getppid_parentExists.c
+@@ -0,0 +1,34 @@
++/*
++ * getppid_parentExists - does something. (You decide!)
++ */
++
++/* Include some standard headers (add more as needed) */
++#include <types.h>
++#include <unistd.h>
++#include <string.h>
++#include <stdlib.h>
++#include <stdio.h>
++#include <err.h>
++
++int
++main() {
++    pid_t fork1; 
++
++    fork1 = fork();
++    int status;  
++
++    if (fork1 == 0){ //if child 
++    //get ppid of child 
++        printf("child's parent pid = %d\n", getppid()); 
++
++    }
++
++    else{ //if parent 
++        waitpid(fork1, &status, 0);
++        //this should be the same as the ppid of the child above 
++        printf("parent pid = %d", getpid()); 
++    }
++
++    return 0; 
++    
++}
+diff --git a/testbin/waitpid_invalidOption/.gitignore b/testbin/waitpid_invalidOption/.gitignore
+new file mode 100644
+index 0000000..240d638
+--- /dev/null
++++ b/testbin/waitpid_invalidOption/.gitignore
+@@ -0,0 +1,2 @@
++# Ignore the compiled executable for each testbin
++waitpid_invalidOption
+diff --git a/testbin/waitpid_invalidOption/Makefile b/testbin/waitpid_invalidOption/Makefile
+new file mode 100644
+index 0000000..ef8893d
+--- /dev/null
++++ b/testbin/waitpid_invalidOption/Makefile
+@@ -0,0 +1,6 @@
++# Makefile for waitpid_invalidOption
++
++SRCS-y=waitpid_invalidOption.c
++TARGET_NAME=waitpid_invalidOption
++
++include ../../mk/build-testbin.mk
+diff --git a/testbin/waitpid_invalidOption/waitpid_invalidOption.c b/testbin/waitpid_invalidOption/waitpid_invalidOption.c
+new file mode 100644
+index 0000000..3b43392
+--- /dev/null
++++ b/testbin/waitpid_invalidOption/waitpid_invalidOption.c
+@@ -0,0 +1,33 @@
++/*
++ * waitpid_invalidOption - does something. (You decide!)
++ */
++
++/* Include some standard headers (add more as needed) */
++#include <types.h>
++#include <unistd.h>
++#include <string.h>
++#include <stdlib.h>
++#include <stdio.h>
++#include <err.h>
++#include <thread.h>
++
++int
++main() {
++    int fork1; 
++    int wait;
++    int status; 
++
++    fork1 = fork(); 
++
++    if (fork1 == 0){
++        printf("child\n"); 
++        exit(132); 
++    }
++
++    else{
++        //waitpid with invalid option 
++        wait = waitpid(fork1, &status, 1); 
++        printf("wait = %d\n", wait);
++    }
++}
++
+diff --git a/testbin/waitpid_invalidStatus/.gitignore b/testbin/waitpid_invalidStatus/.gitignore
+new file mode 100644
+index 0000000..5d458da
+--- /dev/null
++++ b/testbin/waitpid_invalidStatus/.gitignore
+@@ -0,0 +1,2 @@
++# Ignore the compiled executable for each testbin
++waitpid_invalidStatus
+diff --git a/testbin/waitpid_invalidStatus/Makefile b/testbin/waitpid_invalidStatus/Makefile
+new file mode 100644
+index 0000000..850ed7a
+--- /dev/null
++++ b/testbin/waitpid_invalidStatus/Makefile
+@@ -0,0 +1,6 @@
++# Makefile for waitpid_invalidStatus
++
++SRCS-y=waitpid_invalidStatus.c
++TARGET_NAME=waitpid_invalidStatus
++
++include ../../mk/build-testbin.mk
+diff --git a/testbin/waitpid_invalidStatus/waitpid_invalidStatus.c b/testbin/waitpid_invalidStatus/waitpid_invalidStatus.c
+new file mode 100644
+index 0000000..091fb70
+--- /dev/null
++++ b/testbin/waitpid_invalidStatus/waitpid_invalidStatus.c
+@@ -0,0 +1,32 @@
++/*
++ * waitpid_invalidStatus - does something. (You decide!)
++ */
++
++/* Include some standard headers (add more as needed) */
++#include <types.h>
++#include <unistd.h>
++#include <string.h>
++#include <stdlib.h>
++#include <stdio.h>
++#include <err.h>
++#include <thread.h>
++
++int
++main() {
++    int fork1; 
++    int wait;
++    //int status; 
++
++    fork1 = fork(); 
++
++    if (fork1 == 0){
++        printf("child\n"); 
++        exit(132); 
++    }
++
++    else{
++        //waitpid with invalid option 
++        wait = waitpid(fork1, NULL, 0); 
++        printf("wait = %d\n", wait);
++    }
++}
+diff --git a/testbin/waitpidtest/.gitignore b/testbin/waitpidtest/.gitignore
+new file mode 100644
+index 0000000..3fead5f
+--- /dev/null
++++ b/testbin/waitpidtest/.gitignore
+@@ -0,0 +1,2 @@
++# Ignore the compiled executable for each testbin
++waitpidtest
+diff --git a/testbin/waitpidtest/Makefile b/testbin/waitpidtest/Makefile
+new file mode 100644
+index 0000000..235a8b2
+--- /dev/null
++++ b/testbin/waitpidtest/Makefile
+@@ -0,0 +1,6 @@
++# Makefile for waitpidtest
++
++SRCS-y=waitpidtest.c
++TARGET_NAME=waitpidtest
++
++include ../../mk/build-testbin.mk
+diff --git a/testbin/waitpidtest/waitpidtest.c b/testbin/waitpidtest/waitpidtest.c
+new file mode 100644
+index 0000000..9326d0e
+--- /dev/null
++++ b/testbin/waitpidtest/waitpidtest.c
+@@ -0,0 +1,95 @@
++/*
++ * waitpidtest - does something. (You decide!)
++ */
++
++/* Include some standard headers (add more as needed) */
++#include <types.h>
++#include <unistd.h>
++#include <string.h>
++#include <stdlib.h>
++#include <stdio.h>
++#include <err.h>
++#include <thread.h>
++
++int main() {
++    // int waitReturn; 
++    int status = -1; 
++
++    
++    pid_t f1 = fork();
++    // printf("In test\n");
++    // printf("In test Debug mode --1 :%d", pid);
++    if (f1 < 0){
++        printf("fork failed!\n");
++        return 1;
++    }
++    //  f1 = 0; 
++    if (f1 == 0) {        
++        printf("child process with pid %d and parent pid %d\n", getpid(), getppid());
++        exit(54); 
++    }
++
++    else{
++        printf("parent process %d waiting for child %d\n", getpid(), f1); 
++        // printf("f1 = %d\n", f1); 
++        waitpid(f1, &status, 0);
++        printf("parent %d finished waiting on child %d-- exit code of %d\n",getpid(), f1, status);
++        exit(10);
++    }
++
++    return 0;
++
++
++
++    // int wReturn1 =-1;
++    // pid_t fork1PID; 
++    // int wReturn2 = -1;
++    // pid_t fork2PID; 
++    // int status1; 
++    // int status2; 
++
++    // fork1PID = fork(); 
++    // if (fork1PID == -1){
++    //     printf("fork1error\n");
++    // }
++    // if (fork1PID == 0){ //if child 
++    //     printf("fork 1 -- child %d\n", getpid());
++    //     exit(1); 
++    // }
++    // else{
++    //     printf("fork1 -- parent %d of child %d\n", getpid(), fork1PID);
++    //     wReturn1 = waitpid(fork1PID, &status1, 0);
++    //     printf("fork 1 -- parent %d finished waiting for child %d with exit status of %d\n", getpid(), wReturn1, status1);
++    //     fork2PID = fork(); 
++    //     if (fork2PID == 0){ //child 
++    //         printf("fork 2 -- child %d\n", getpid());
++    //         exit(2); 
++    //     }
++    //     else{
++    //         printf("fork 2 -- parent %d of child %d\n", getpid(), fork2PID);
++    //         wReturn2 = waitpid(fork2PID, &status2, 0); 
++    //          printf("fork 2 -- parent %d finished waiting for child %d with exit status of %d\n", getpid(), wReturn2, status2);
++    //         exit(30); 
++    //     }
++
++    // }
++
++    // int wReturn1;
++    // pid_t fork1PID; 
++    // // int wReturn2;
++    // // pid_t fork2PID; 
++    // int status1; 
++    // // int status2; 
++
++    // fork1PID = fork(); 
++    // if (fork1PID == 0){ //if child 
++    //     // printf("fork 1 -- child %d\n", getpid());
++    //     exit(1); 
++    // }
++    // else{
++    //     // printf("fork1 -- parent %d of child %d\n", getpid(), fork1PID);
++    //     waitpid(fork1PID, &status1, 0);
++    //     // printf("fork 1 -- parent %d finished waiting for child %d with exit status of %d\n", getpid(), wReturn1, status1);
++    //    exit (30); 
++    // }
++}

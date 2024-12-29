@@ -1,0 +1,82 @@
+Kaitlin O’Leary - G01372290
+Shalini Maknoor - G01503797
+
+Code Reading Questions 
+
+1.What are the ELF magic numbers? 
+
+There are 4 ELF magic numbers:
+     - ELFMAG0 - 0x7f
+     - ELFMAG1 - ‘E’
+     - ELFMAG2 - ‘L’
+     - ELFMAG3 - ‘F’
+kern/include/elf.h
+
+
+2. What is the difference between UIO_USERISPACE and UIO_USERSPACE? When should one use UIO_SYSSPACE instead? 
+
+UIO_USERSPACE is for transferring data between the kernel and the userspace. UIO_USERISPACE is for executable user program instructions. UIO_SYSSPACE is for transferring data within the kernel. → kern/include/uio.h, kern/userprog/loadelf.c
+
+
+3. Why can the struct uio that is used to read in a segment be allocated on the stack in load_segment() (i.e., where does the memory read actually go)? 
+
+The struct uio that is used to read in a segment is allocated to the stack in load_segment() because it is a local variable that will no longer be needed after load_segment() completes. The address used to read in the segment is a virtual address that points to the user space (a userptr_t is used). This allows the data that is read to be directly stored in the location pointed to by the virtual address and does not need to actually be stored within the structure itself. This allows the structure to be stored on the stack. → kern/userprog/loadelf.c
+
+
+4. In runprogram(), why is it important to call vfs_close() before switching to usermode?
+
+When a file is opened, resources are allocated for managing and reading the file. As long as the file is open, these resources remain in place. If vfs_close() is not called, these resources are still allocated, which could cause memory leakage. This also prevents another thread.process from using the file because it is still open in the original thread. Calling vfs_close() deallocates those resources to prevent memory leaks and allows a different thread/process to open and use the file. → kern/userprog/runprogram.c
+
+
+
+5. What function forces the processor to switch into usermode? Is this function machine dependent?
+
+The function mips_usermode forces the processor to switch into usermode. This function is machine dependent and used by the machine independent thread code. → kern/arch/mips/mips/trap.c
+
+
+6. In what file are copyin, copyout and memmove defined? Why can't copyin and copyout be 
+implemented simply as memmove? 
+
+Copyinout.c defines copyin and copyout, while memmove.c defines memmove. Since copyin/copyout moves memory from user addresses to kernel addresses and from kernel addresses to user addresses, memmove can only move memory between user addresses. 
+kern/lib/copyinout.c, lib/libc/memmove.c
+
+
+7. What is the purpose of userptr_t? Explain briefly. 
+
+userptr_t is a pointer to a one-byte struct, so it won't mix with other pointers and to keep track of user space addresses for each of the users. kern/include/types.h, kern/include/uio.h
+
+
+8. What is the numerical value of the exception code for a MIPS system call? 
+
+The numerical value of the exception code for a MIPS system call is EX_SYS 8. → kern/arch/mips/mips/trap.c
+
+
+9. Why does mips_trap() set curspl to SPL_HIGH "manually", instead of using splhigh()? 
+
+The function mips_trap() sets curspl to SPL_HIGH “manually” so the previous level can be saved in savespl. This allows the previous interrupt level to be restored after the interruption is handled. The function split() is atomic so it does not allow the previous interrupt level to be stored before switching. 
+
+
+10. How many bytes is an instruction in MIPS? (Answer this by reading mips_syscall() carefully, not by looking somewhere else.) 
+
+Each MIPS instruction is 32 bits long (4 bytes) . kern/arch/mips/mips/syscall.c
+
+
+11. Why do you "probably want to change" the implementation of kill_curthread()? 
+
+We will “probably want to change” the implementation of kill_curthread() because right now it only panics and halts the system. We should change this implementation to better handle this fault instead of shutting down the entire system. → kern/arch/mips/mips/trap.c
+
+
+12. What would be required to implement a system call that took more than 4 arguments? 
+
+In MIPS, there are only 4 argument registers (a0 - a3). If a system call took more than these 4 arguments, extra arguments would have to be stored and fetched from the user-level stack. 
+
+
+13. What is the purpose of the SYSCALL macro? 
+
+The SYSCALL macro allows a system call handler to be created for a certain syscall, using the code in syscalls-mips.S. The syscall name is mapped to the call number. The syscall number is loaded into v0, and the system jumps to the shared syscall code. → lib/libc/syscalls-mips.S
+
+
+14. What is the MIPS instruction that actually triggers a system call? (Answer this by reading the source in this directory, not looking somewhere else.) 
+
+The MIPS instruction that triggers a system call is the instruction syscall. Before executing the instruction, the syscall number needs to be loaded into the register $v0. kern/arch/mips/mips/syscall.c
+

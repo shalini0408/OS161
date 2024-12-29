@@ -1,0 +1,12 @@
+Script started on 2024-12-08 20:15:35-05:00
+bash-4.4$ sys161 kernel
+sys161: disk: slot 2: DISK1.img: Locked by another process
+bash-4.4$ ps
+    PID TTY          TIME CMD
+3231037 pts/116  00:00:00 bash
+3234143 pts/116  00:00:00 ps
+bash-4.4$ clear
+[3J[H[2Jbash-4.4$ exit
+exit
+
+Script done on 2024-12-08 20:16:43-05:00

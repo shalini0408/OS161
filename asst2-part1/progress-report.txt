@@ -1,0 +1,55 @@
+Kaitlin O’Leary - G01372290
+Shalini Maknoor - G01503797
+
+PA2 Progress Report 
+
+
+We have gone through the code base to investigate how the system calls work. We plan to edit the thread structure to include fields such as pid, ppid, exit status, if the process has exited or not, a pointer to the parent process, and an array of pointers to the child process(es). 
+
+
+Process table:
+
+We created a processes.h file and a processes.c file. These are used to manage and track the process table. Because the system is a 1:1 process : thread model, we adapted the thread structure for use as a process. We added these fields to the thread struct: pid, ppid, exit_status. We will use an array of thread structs of size 128 as the process table. The pid of a process at index i will be i + 1. This is because the pid 0 needs to be reserved for returning during forking. It would be impossible to tell which was the parent and which was the child after a fork if the parent’s pid was 0. Any pid’s that are available will have empty spaces in the array. This will allow for pids of processes that have finished to be reused. 
+
+We also added the following helper functions:
+
+create_proc() – this function creates a new process.
+
+add_proc() – this function takes the process created by create_proc() or a given process, and adds it to the array.
+
+destroy_proc() – frees any dynamically allocated portions of the process  
+
+remove_proc() – removes the proc from the linked list and updates pointers. 
+
+
+getpid(): 
+
+This function will access the pid field of the calling process and return the pid. 
+
+getppid():
+
+This function will find the pid of the calling process in the process table and save the ppid field. It will then search the table for the ppid. If the ppid has exited or does not exist, it will return -1. Otherwise it will return the ppid.
+
+
+fork(): 
+
+Fork will create a copy of the current process. First we will create a separate user address space that is the same size as the current process’s address space. A new process will be created and added to the process table and the pid and ppid fields will be updated. We will then copy the parent’s trapframe and address space contents to the child’s trapframe and address space using md_forkentry(). Finally, the parent will return the child’s pid and the child will return 0. We will implement some logic in function to handle this case. If the ppid is the same as the process’s  pid, then return 0. Otherwise, return the pid of the child of that process. Last, we will give control back to usermode (using mips_usermode()).  
+
+execv():
+
+This function replaces the current process with the given new program.The pid of the process will remain the same. We will copy the arguments from user space into th kernel buffer using kmalloc() to allocate space in the kernel and copyin() to copy the arguments from the user space to the kernel space. Then we will open the executable and use kmalloc() and copy the elf into the space. Then we will copy arguments from the kernel buffer into the user stack using copyout(), increment the process counter (tf->tf_epc+=4), and return to user mode. 
+
+
+waitpid(): 
+
+This function waits for the process with that pid to exit and returns the exit code. Our restriction is that only parent processes can wait on the given process. In kernel mode we will check the process table for the process pid. If the exit status of the given pid is not NULL, it has exited. We will save the exit status and then remove the child from the process table and release its resources. We will then go back into usermode and return the exit status that we saved previously. If the process with the given pid has not exited, the thread representing the calling process will sleep and be woken up when that process has exited. 
+
+
+_exit()
+
+This function terminates the current process. We will go into the kernel space and change the state of the process to terminated/zombie. We will then release all resources associated with the process, but the process itself will not be killed. If a parent is waiting, it will be notified of the change in status. If the parent is not yet waiting, resources will be deallocated, but the process with its exit status and pid will remain in the table. We will then increment the process counter (tf->tf_epc+=4) and go back to usermode. 
+
+
+Responsibilities of the Team Members:
+
+As in the last project, we will meet in-person several times a week to work on the project. When we meet we talk through the algorithms, implement them, and test the solutions together. We find that it is easier to find optimized solutions this way rather than splitting up the work and working independently. 

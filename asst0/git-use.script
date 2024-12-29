@@ -1,0 +1,589 @@
+Script started on 2024-09-15 20:17:47-04:00
+bash-4.4$ cd ~/os161/kern//[Kmain/
+bash-4.4$ git diff main.c
+[?1h=[1mdiff --git a/kern/main/main.c b/kern/main/main.c[m[m
+[1mindex fd0c6f5..e049ca5 100644[m[m
+[1m--- a/kern/main/main.c[m[m
+[1m+++ b/kern/main/main.c[m[m
+[36m@@ -1,3 +1,5 @@[m[m
+[32m+[m[32m//Kaitlin O'Leary[m[m
+[32m+[m[m
+ /*[m[m
+  * Main.[m[m
+  */[m[m
+[K[?1l>bash-4.4$ git commit -am "First Co[K[Kcomment"[K -- KO"
+[main b109d5a] First comment -- KO
+ Committer: Kaitlin E O'leary <koleary6@zeus-2.cec.gmu.edu>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly. Run the
+following command and follow the instructions in your editor to edit
+your configuration file:
+
+    git config --global --edit
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 1 file changed, 2 insertions(+)
+bash-4.4$ make -C ~/os161/[K
+make: Entering directory '/home/koleary6/os161'
+[36mGEN     (B[m/home/koleary6/os161/tags
+make[1]: Entering directory '/home/koleary6/os161/kern'
+[33mCLEAN   (B[m/home/koleary6/os161/kern/kernel
+[32mCC      (B[m/home/koleary6/os161/kern/main/main.c
+/home/koleary6/os161/kern/main/main.c:100:1: error: expected identifier or '(' before '{' token
+ {
+ ^
+/home/koleary6/os161/kern/main/main.c: In function 'sys_reboot':
+/home/koleary6/os161/kern/main/main.c:135:2: error: implicit declaration of function 'shutdown' [-Werror=implicit-function-declaration]
+  shutdown();
+  ^
+cc1: all warnings being treated as errors
+make[1]: *** [/home/koleary6/os161/mk/core.mk:230: /home/koleary6/os161/kern/main/main.k.o] Error 1
+make[1]: Leaving directory '/home/koleary6/os161/kern'
+make: *** [Makefile:28: all] Error 2
+make: Leaving directory '/home/koleary6/os161'
+bash-4.4$ rm main.c
+bash-4.4$ git chekc[K[Kckout main.c
+Updated 1 path from the index
+bash-4.4$ git checkout main.c[C[C[C[C[C[C[C[C[C[C[10Prm[C[C[C[C[C[C[Cmake -C ~/os161
+make: Entering directory '/home/koleary6/os161'
+[36mGEN     (B[m/home/koleary6/os161/tags
+make[1]: Entering directory '/home/koleary6/os161/kern'
+[32mCC      (B[m/home/koleary6/os161/kern/main/main.c
+[36mGEN     (B[m/home/koleary6/os161/kern/compile/vers.c
+*** This is ASST0 build #9 ***
+[32mCC      (B[m/home/koleary6/os161/kern/compile/vers.c
+[35mLINK    (B[m/home/koleary6/os161/kern/kernel
+[34mINSTALL (B[m/home/koleary6/os161/root/kernel
+make[1]: Leaving directory '/home/koleary6/os161/kern'
+make: Leaving directory '/home/koleary6/os161'
+bash-4.4$ ~cd/o[K[K[K[K[Kcd ~/os161
+bash-4.4$ git diff
+[?1h=[1mdiff --git a/kern/arch/mips/mips/interrupt.c b/kern/arch/mips/mips/interrupt.c[m[m
+[1mindex 805c566..daa1708 100644[m[m
+[1m--- a/kern/arch/mips/mips/interrupt.c[m[m
+[1m+++ b/kern/arch/mips/mips/interrupt.c[m[m
+[36m@@ -17,7 +17,8 @@[m [mint in_interrupt;[m[m
+ [m[m
+ void[m[m
+ mips_interrupt(u_int32_t cause)[m[m
+[31m-{[m[m
+[32m+[m[32m[7m^Z[27m[m[m
+[32m+[m[41m       [m[m
+        int old_in = in_interrupt;[m[m
+        in_interrupt = 1;[m[m
+ [m[m
+[1mdiff --git a/kern/arch/mips/mips/lamebus_mips.c b/kern/arch/mips/mips/lamebus_mips.c[m[m
+[1mindex 0830c13..eefe753 100644[m[m
+[1m--- a/kern/arch/mips/mips/lamebus_mips.c[m[m
+[1m+++ b/kern/arch/mips/mips/lamebus_mips.c[m[m
+[36m@@ -55,6 +55,10 @@[m [mlamebus_map_area(struct lamebus_softc *bus, int slot, u_int32_t offset)[m[m
+        assert(slot>=0 && slot<LB_NSLOTS);[m[m
+ [m[m
+        address = LB_BASEADDR + slot*LB_SLOT_SIZE + offset;[m[m
+[32m+[m[m
+[32m+[m       [32m/*DEBUG statement*/[m[m
+[32m+[m       [32mDEBUG(DB_VM, "address of lameBUS map area: %u\n", address);[m[41m [m[m
+[32m+[m[m
+        return (void *)address;[m[m
+ }[m[m
+ [m[m
+[1mdiff --git a/kern/lib/array.c b/kern/lib/array.c[m[m
+[1mindex 10126ce..7ac4c9a 100644[m[m
+[1m--- a/kern/lib/array.c[m[m
+[1m+++ b/kern/lib/array.c[m[m
+[36m@@ -49,7 +49,9 @@[m [marray_preallocate(struct array *a, int nguys)[m[m
+        assert(a->num >=0 && a->num <= a->max);[m[m
+                [m[m
+        while (nguys > newmax) {[m[m
+[32m+[m               [32mDEBUG(DB_VM, "nguys = %i, newmax = %i\n", nguys, newmax);[m[41m [m[m
+                newmax = (newmax+1)*2;[m[m
+[32m+[m[41m               [m[m
+        }[m[m
+        newv = kmalloc(newmax * sizeof(void *));[m[m
+        if (newv==NULL) {[m[m
+[36m@@ -104,6 +106,9 @@[m [marray_add(struct array *a, void *guy)[m[m
+        ix = a->num;[m[m
+ [m[m
+        result = array_setsize(a, ix+1);[m[m
+[32m+[m[41m       [m[m
+[32m+[m       [32mDEBUG(DB_VM, "result = %i\n", result);[m[41m [m[m
+[32m+[m[41m       [m[m
+:[K[K        if (result) {[m[m
+:[K[K                return result;[m[m
+:[K[K        }[m[m
+:[K[K[1mdiff --git a/kern/lib/kgets.c b/kern/lib/kgets.c[m[m
+:[K[K[1mindex ea72e1b..a1dbb43 100644[m[m
+:[K[K[1m--- a/kern/lib/kgets.c[m[m
+:[K[K[1m+++ b/kern/lib/kgets.c[m[m
+:[K[K[36m@@ -33,6 +33,8 @@[m [mkgets(char *buf, size_t maxlen)[m[m
+:[K[K                        break;[m[m
+:[K[K                }[m[m
+:[K[K [m[m
+:[K[K[32m+[m               [32mDEBUG(DB_VM, "ch = %s\n", ch);[m[41m [m[m
+:[K[K[32m+[m[m
+:[K[K                /* Only allow the normal 7-bit ascii */[m[m
+:[K[K                if (ch>=32 && ch<127 && pos < maxlen-1) {[m[m
+:[K[K                        putch(ch);[m[m
+:[K[K[1mdiff --git a/kern/thread/hardclock.c b/kern/thread/hardclock.c[m[m
+:[K[K[1mindex 79afc2d..1754c1c 100644[m[m
+:[K[K[1m--- a/kern/thread/hardclock.c[m[m
+:[K[K[1m+++ b/kern/thread/hardclock.c[m[m
+:[K[K[36m@@ -43,6 +43,7 @@[m [mclocksleep(int num_secs)[m[m
+:[K[K        s = splhigh();[m[m
+:[K[K        while (num_secs > 0) {[m[m
+:[K[K                thread_sleep(&lbolt);[m[m
+:[K[K[32m+[m               [32mDEBUG(DB_VM, "num_secs = %i\n", num_secs);[m[41m [m[m
+:[K[K                num_secs--;[m[m
+:[K[K        }[m[m
+:[K[K        splx(s);[m[m
+:[K[K[1mdiff --git a/kern/thread/scheduler.c b/kern/thread/scheduler.c[m[m
+:[K[K[1mindex 795f292..6f1d7df 100644[m[m
+:[K[K[1m--- a/kern/thread/scheduler.c[m[m
+:[K[K[1m+++ b/kern/thread/scheduler.c[m[m
+:[K[K[36m@@ -91,6 +91,7 @@[m [mscheduler(void)[m[m
+:[K[K        assert(curspl>0);[m[m
+:[K[K        [m[m
+:[K[K        while (q_empty(runqueue)) {[m[m
+:[K[K[32m+[m               [32mDEBUG(DB_VM, "No thread ready to run\n");[m[41m [m[m
+:[K[K                cpu_idle();[m[m
+:[K[K        }[m[m
+:[K[K [m[m
+:[K[K[1mdiff --git a/kern/thread/synch.c b/kern/thread/synch.c[m[m
+:[K[K[1mindex 4c33942..817928e 100644[m[m
+:[K[K[1m--- a/kern/thread/synch.c[m[m
+:[K[K[1m+++ b/kern/thread/synch.c[m[m
+:[K[K[36m@@ -54,6 +54,9 @@[m [msem_destroy(struct semaphore *sem)[m[m
+:[K[K         * freed. Consequently, there's not a whole lot of point in [m[m
+:[K[K         * including the kfrees in the splhigh block, so we don't.[m[m
+:[K[K         */[m[m
+:[K[K[32m+[m[41m       [m[m
+:[K[K[32m+[m[m
+:[K[K[32m+[m       [32mDEBUG(DB_VM, "Sempaphore desctroyed: %s\n", sem->name);[m[41m [m[m
+:[K[K [m[m
+:[K[K        kfree(sem->name);[m[m
+:[K[K        kfree(sem);[m[m
+:[K[K[36m@@ -113,6 +116,8 @@[m [mlock_create(const char *name)[m[m
+:[K[K                kfree(lock);[m[m
+:[K[K                return NULL;[m[m
+:[K[K        }[m[m
+:[K[K[32m+[m[m
+:[K[K[32m+[m       [32mDEBUG(DB_VM, "Lock created: %s\n", lock->name);[m[41m [m[m
+:[K[K        [m[m
+:[K[K        // add stuff here as needed[m[m
+:[K[K        [m[m
+:[K[K[36m@@ -126,6 +131,8 @@[m [mlock_destroy(struct lock *lock)[m[m
+:[K[K [m[m
+:[K[K        // add stuff here as needed[m[m
+:[K[K        [m[m
+:[K[K[32m+[m       [32mDEBUG(DB_VM, "Lock %s destroyed.\n", lock->name);[m[41m [m[m
+:[K[K[32m+[m[m
+:[K[K        kfree(lock->name);[m[m
+:[K[K        kfree(lock);[m[m
+:[K[K }[m[m
+:[K[K[1mdiff --git a/kern/thread/thread.c b/kern/thread/thread.c[m[m
+:[K[K[1mindex 75ebad5..8f962ef 100644[m[m
+:[K[K[1m--- a/kern/thread/thread.c[m[m
+:[K[K[1m+++ b/kern/thread/thread.c[m[m
+:[K[K[36m@@ -301,6 +301,8 @@[m [mthread_fork(const char *name,[m[m
+:[K[K         */[m[m
+:[K[K        numthreads++;[m[m
+:[K[K [m[m
+:[K[K[32m+[m       [32mDEBUG(DB_VM, "Total number of threads: %i\n", numthreads);[m[41m [m[m
+:[K[K[32m+[m[m
+:[K[K        /* Done with stuff that needs to be atomic */[m[m
+:[K[K        splx(s);[m[m
+:[K[K [m[m
+:[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K [KESCESC[KOO[KCC[H[2J[H[m[m
+[32m[m[32mn\n");[m[41m [m[m
+[m[m
+[m[m
+[m[m
+[1mh.c[m[m
+[1m[m[m
+[1m[m[m
+[1m[m[m
+[36m[m[m)[m[m
+ lot of point in [m[m
+k, so we don't.[m[m
+[m[m
+[32m[m[41m[m[m
+[32m[m[m
+[32m[m[32m sem->name);[m[41m [m[m
+[m[m
+[m[m
+[m[m
+[36m[m[m[m[m
+[m[m
+[m[m
+[m[m
+[32m[m[m
+[32m[m[32mme);[m[41m [m[m
+[m[m
+[m[m
+[m[m
+[36m[m[m[m[m
+[m[m
+[m[m
+[m[m
+[32m[m[32mname);[m[41m [m[m
+[32m[m[m
+[m[m
+[m[m
+[m[m
+[1mead.c[m[m
+[1m[m[m
+[1m[m[m
+[1m[m[m
+[36m[m[m[m[m
+[m[m
+[m[m
+[m[m
+[32m[m[32m", numthreads);[m[41m [m[m
+[32m[m[m
+*/[m[m
+[m[m
+[m[m
+[7m(END)[27m[K[K [KESCESC[KOO[KDD[H[2J[H        while (q_empty(runqueue)) {[m[m
+[32m+[m               [32mDEBUG(DB_VM, "No thread ready to run\n");[m[41m [m[m
+                cpu_idle();[m[m
+        }[m[m
+ [m[m
+[1mdiff --git a/kern/thread/synch.c b/kern/thread/synch.c[m[m
+[1mindex 4c33942..817928e 100644[m[m
+[1m--- a/kern/thread/synch.c[m[m
+[1m+++ b/kern/thread/synch.c[m[m
+[36m@@ -54,6 +54,9 @@[m [msem_destroy(struct semaphore *sem)[m[m
+         * freed. Consequently, there's not a whole lot of point in [m[m
+         * including the kfrees in the splhigh block, so we don't.[m[m
+         */[m[m
+[32m+[m[41m       [m[m
+[32m+[m[m
+[32m+[m       [32mDEBUG(DB_VM, "Sempaphore desctroyed: %s\n", sem->name);[m[41m [m[m
+ [m[m
+        kfree(sem->name);[m[m
+        kfree(sem);[m[m
+[36m@@ -113,6 +116,8 @@[m [mlock_create(const char *name)[m[m
+                kfree(lock);[m[m
+                return NULL;[m[m
+        }[m[m
+[32m+[m[m
+[32m+[m       [32mDEBUG(DB_VM, "Lock created: %s\n", lock->name);[m[41m [m[m
+        [m[m
+        // add stuff here as needed[m[m
+        [m[m
+[36m@@ -126,6 +131,8 @@[m [mlock_destroy(struct lock *lock)[m[m
+ [m[m
+        // add stuff here as needed[m[m
+        [m[m
+[32m+[m       [32mDEBUG(DB_VM, "Lock %s destroyed.\n", lock->name);[m[41m [m[m
+[32m+[m[m
+        kfree(lock->name);[m[m
+        kfree(lock);[m[m
+ }[m[m
+[1mdiff --git a/kern/thread/thread.c b/kern/thread/thread.c[m[m
+[1mindex 75ebad5..8f962ef 100644[m[m
+[1m--- a/kern/thread/thread.c[m[m
+[1m+++ b/kern/thread/thread.c[m[m
+[36m@@ -301,6 +301,8 @@[m [mthread_fork(const char *name,[m[m
+         */[m[m
+        numthreads++;[m[m
+ [m[m
+[32m+[m       [32mDEBUG(DB_VM, "Total number of threads: %i\n", numthreads);[m[41m [m[m
+[32m+[m[m
+        /* Done with stuff that needs to be atomic */[m[m
+        splx(s);[m[m
+ [m[m
+[7m(END)[27m[K[K [KESCESC[KOO[KBB[K[K[7m(END)[27m[K[K [KESCESC[KOO[KBB[K[K[7m(END)[27m[K[K[H[2J[HM[32m+[m[41m       [m[m
+[HM[32m+[m       [32mDEBUG(DB_VM, "result = %i\n", result);[m[41m [m[m
+[HM[32m+[m[41m       [m[m
+[HM        result = array_setsize(a, ix+1);[m[m
+[HM [m[m
+[HM        ix = a->num;[m[m
+[HM[36m@@ -104,6 +106,9 @@[m [marray_add(struct array *a, void *guy)[m[m
+[HM        if (newv==NULL) {[m[m
+[HM        newv = kmalloc(newmax * sizeof(void *));[m[m
+[HM        }[m[m
+[HM[32m+[m[41m               [m[m
+[HM                newmax = (newmax+1)*2;[m[m
+[HM[32m+[m               [32mDEBUG(DB_VM, "nguys = %i, newmax = %i\n", nguys, newmax);[m[41m [m[m
+[HM        while (nguys > newmax) {[m[m
+[HM                [m[m
+[HM        assert(a->num >=0 && a->num <= a->max);[m[m
+[HM[36m@@ -49,7 +49,9 @@[m [marray_preallocate(struct array *a, int nguys)[m[m
+[HM[1m+++ b/kern/lib/array.c[m[m
+[HM[1m--- a/kern/lib/array.c[m[m
+[HM[1mindex 10126ce..7ac4c9a 100644[m[m
+[HM[1mdiff --git a/kern/lib/array.c b/kern/lib/array.c[m[m
+[HM [m[m
+[HM }[m[m
+[HM        return (void *)address;[m[m
+[HM[32m+[m[m
+[HM[32m+[m       [32mDEBUG(DB_VM, "address of lameBUS map area: %u\n", address);[m[41m [m[m
+[HM[32m+[m       [32m/*DEBUG statement*/[m[m
+[HM[32m+[m[m
+[HM        address = LB_BASEADDR + slot*LB_SLOT_SIZE + offset;[m[m
+[HM [m[m
+[HM        assert(slot>=0 && slot<LB_NSLOTS);[m[m
+[HM[36m@@ -55,6 +55,10 @@[m [mlamebus_map_area(struct lamebus_softc *bus, int slot, u_int32_t offset)[m[m
+[HM[1m+++ b/kern/arch/mips/mips/lamebus_mips.c[m[m
+[HM[1m--- a/kern/arch/mips/mips/lamebus_mips.c[m[m
+[HM[1mindex 0830c13..eefe753 100644[m[m
+[HM[1mdiff --git a/kern/arch/mips/mips/lamebus_mips.c b/kern/arch/mips/mips/lamebus_mips.c[m[m
+[HM [m[m
+[HM        in_interrupt = 1;[m[m
+[HM        int old_in = in_interrupt;[m[m
+[HM[32m+[m[41m       [m[m
+[HM[32m+[m[32m[7m^Z[27m[m[m
+[HM[31m-{[m[m
+[HM mips_interrupt(u_int32_t cause)[m[m
+[HM void[m[m
+[HM [m[m
+[HM[36m@@ -17,7 +17,8 @@[m [mint in_interrupt;[m[m
+[HM[1m+++ b/kern/arch/mips/mips/interrupt.c[m[m
+[HM[1m--- a/kern/arch/mips/mips/interrupt.c[m[m
+[HM[1mindex 805c566..daa1708 100644[m[m
+[HM[1mdiff --git a/kern/arch/mips/mips/interrupt.c b/kern/arch/mips/mips/interrupt.c[m[m
+[51;1H[K:[K[K[K:[K[K:[K[K[7mNo next tag  (press RETURN)[27m[51;1H[K[K:[K[K        if (result) {[m[m
+:[K[K                return result;[m[m
+:[K[K        }[m[m
+:[K[K[1mdiff --git a/kern/lib/kgets.c b/kern/lib/kgets.c[m[m
+:[K[K[1mindex ea72e1b..a1dbb43 100644[m[m
+:[K[K[1m--- a/kern/lib/kgets.c[m[m
+:[K[K[1m+++ b/kern/lib/kgets.c[m[m
+:[K[K[36m@@ -33,6 +33,8 @@[m [mkgets(char *buf, size_t maxlen)[m[m
+:[K[K                        break;[m[m
+:[K[K                }[m[m
+:[K[K [m[m
+:[K[K[32m+[m               [32mDEBUG(DB_VM, "ch = %s\n", ch);[m[41m [m[m
+:[K[K[32m+[m[m
+:[K[K                /* Only allow the normal 7-bit ascii */[m[m
+:[K[K                if (ch>=32 && ch<127 && pos < maxlen-1) {[m[m
+:[K[K                        putch(ch);[m[m
+:[K[K[1mdiff --git a/kern/thread/hardclock.c b/kern/thread/hardclock.c[m[m
+:[K[K[1mindex 79afc2d..1754c1c 100644[m[m
+:[K[K[1m--- a/kern/thread/hardclock.c[m[m
+:[K[K[1m+++ b/kern/thread/hardclock.c[m[m
+:[K[K[36m@@ -43,6 +43,7 @@[m [mclocksleep(int num_secs)[m[m
+:[K[K        s = splhigh();[m[m
+:[K[K        while (num_secs > 0) {[m[m
+:[K[K                thread_sleep(&lbolt);[m[m
+:[K[K[32m+[m               [32mDEBUG(DB_VM, "num_secs = %i\n", num_secs);[m[41m [m[m
+:[K[K                num_secs--;[m[m
+:[K[K        }[m[m
+:[K[K        splx(s);[m[m
+:[K[K[1mdiff --git a/kern/thread/scheduler.c b/kern/thread/scheduler.c[m[m
+:[K[K[1mindex 795f292..6f1d7df 100644[m[m
+:[K[K[1m--- a/kern/thread/scheduler.c[m[m
+:[K[K[1m+++ b/kern/thread/scheduler.c[m[m
+:[K[K[36m@@ -91,6 +91,7 @@[m [mscheduler(void)[m[m
+:[K[K        assert(curspl>0);[m[m
+:[K[K        [m[m
+:[K[K        while (q_empty(runqueue)) {[m[m
+:[K[K[32m+[m               [32mDEBUG(DB_VM, "No thread ready to run\n");[m[41m [m[m
+:[K[K                cpu_idle();[m[m
+:[K[K        }[m[m
+:[K[K [m[m
+:[K[K[1mdiff --git a/kern/thread/synch.c b/kern/thread/synch.c[m[m
+:[K[K[1mindex 4c33942..817928e 100644[m[m
+:[K[K[1m--- a/kern/thread/synch.c[m[m
+:[K[K[1m+++ b/kern/thread/synch.c[m[m
+:[K[K[36m@@ -54,6 +54,9 @@[m [msem_destroy(struct semaphore *sem)[m[m
+:[K[K         * freed. Consequently, there's not a whole lot of point in [m[m
+:[K[K         * including the kfrees in the splhigh block, so we don't.[m[m
+:[K[K         */[m[m
+:[K[K[32m+[m[41m       [m[m
+:[K[K[32m+[m[m
+:[K[K[32m+[m       [32mDEBUG(DB_VM, "Sempaphore desctroyed: %s\n", sem->name);[m[41m [m[m
+:[K[K [m[m
+:[K[K        kfree(sem->name);[m[m
+:[K[K        kfree(sem);[m[m
+:[K[K[36m@@ -113,6 +116,8 @@[m [mlock_create(const char *name)[m[m
+:[K[K                kfree(lock);[m[m
+:[K[K                return NULL;[m[m
+:[K[K        }[m[m
+:[K[K[32m+[m[m
+:[K[K[32m+[m       [32mDEBUG(DB_VM, "Lock created: %s\n", lock->name);[m[41m [m[m
+:[K[K        [m[m
+:[K[K        // add stuff here as needed[m[m
+:[K[K        [m[m
+:[K[K[36m@@ -126,6 +131,8 @@[m [mlock_destroy(struct lock *lock)[m[m
+:[K[K [m[m
+:[K[K        // add stuff here as needed[m[m
+:[K[K        [m[m
+:[K[K[32m+[m       [32mDEBUG(DB_VM, "Lock %s destroyed.\n", lock->name);[m[41m [m[m
+:[K[K[32m+[m[m
+:[K[K        kfree(lock->name);[m[m
+:[K[K        kfree(lock);[m[m
+:[K[K }[m[m
+:[K[K[1mdiff --git a/kern/thread/thread.c b/kern/thread/thread.c[m[m
+:[K[K[1mindex 75ebad5..8f962ef 100644[m[m
+:[K[K[1m--- a/kern/thread/thread.c[m[m
+:[K[K[1m+++ b/kern/thread/thread.c[m[m
+:[K[K[36m@@ -301,6 +301,8 @@[m [mthread_fork(const char *name,[m[m
+:[K[K         */[m[m
+:[K[K        numthreads++;[m[m
+:[K[K [m[m
+:[K[K[32m+[m       [32mDEBUG(DB_VM, "Total number of threads: %i\n", numthreads);[m[41m [m[m
+:[K[K[32m+[m[m
+:[K[K        /* Done with stuff that needs to be atomic */[m[m
+:[K[K        splx(s);[m[m
+:[K[K [m[m
+[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[H[2J[HM[32m+[m[41m       [m[m
+[HM[32m+[m       [32mDEBUG(DB_VM, "result = %i\n", result);[m[41m [m[m
+[HM[32m+[m[41m       [m[m
+[HM        result = array_setsize(a, ix+1);[m[m
+[HM [m[m
+[HM        ix = a->num;[m[m
+[HM[36m@@ -104,6 +106,9 @@[m [marray_add(struct array *a, void *guy)[m[m
+[HM        if (newv==NULL) {[m[m
+[HM        newv = kmalloc(newmax * sizeof(void *));[m[m
+[HM        }[m[m
+[HM[32m+[m[41m               [m[m
+[HM                newmax = (newmax+1)*2;[m[m
+[HM[32m+[m               [32mDEBUG(DB_VM, "nguys = %i, newmax = %i\n", nguys, newmax);[m[41m [m[m
+[HM        while (nguys > newmax) {[m[m
+[HM                [m[m
+[HM        assert(a->num >=0 && a->num <= a->max);[m[m
+[HM[36m@@ -49,7 +49,9 @@[m [marray_preallocate(struct array *a, int nguys)[m[m
+[HM[1m+++ b/kern/lib/array.c[m[m
+[HM[1m--- a/kern/lib/array.c[m[m
+[HM[1mindex 10126ce..7ac4c9a 100644[m[m
+[HM[1mdiff --git a/kern/lib/array.c b/kern/lib/array.c[m[m
+[HM [m[m
+[HM }[m[m
+[HM        return (void *)address;[m[m
+[HM[32m+[m[m
+[HM[32m+[m       [32mDEBUG(DB_VM, "address of lameBUS map area: %u\n", address);[m[41m [m[m
+[HM[32m+[m       [32m/*DEBUG statement*/[m[m
+[HM[32m+[m[m
+[HM        address = LB_BASEADDR + slot*LB_SLOT_SIZE + offset;[m[m
+[HM [m[m
+[HM        assert(slot>=0 && slot<LB_NSLOTS);[m[m
+[HM[36m@@ -55,6 +55,10 @@[m [mlamebus_map_area(struct lamebus_softc *bus, int slot, u_int32_t offset)[m[m
+[HM[1m+++ b/kern/arch/mips/mips/lamebus_mips.c[m[m
+[HM[1m--- a/kern/arch/mips/mips/lamebus_mips.c[m[m
+[HM[1mindex 0830c13..eefe753 100644[m[m
+[HM[1mdiff --git a/kern/arch/mips/mips/lamebus_mips.c b/kern/arch/mips/mips/lamebus_mips.c[m[m
+[HM [m[m
+[HM        in_interrupt = 1;[m[m
+[HM        int old_in = in_interrupt;[m[m
+[HM[32m+[m[41m       [m[m
+[HM[32m+[m[32m[7m^Z[27m[m[m
+[HM[31m-{[m[m
+[HM mips_interrupt(u_int32_t cause)[m[m
+[HM void[m[m
+[HM [m[m
+[HM[36m@@ -17,7 +17,8 @@[m [mint in_interrupt;[m[m
+[HM[1m+++ b/kern/arch/mips/mips/interrupt.c[m[m
+[HM[1m--- a/kern/arch/mips/mips/interrupt.c[m[m
+[HM[1mindex 805c566..daa1708 100644[m[m
+[HM[1mdiff --git a/kern/arch/mips/mips/interrupt.c b/kern/arch/mips/mips/interrupt.c[m[m
+[51;1H[K:[K[K        if (result) {[m[m
+:[K[K                return result;[m[m
+:[K[K        }[m[m
+:[K[K[1mdiff --git a/kern/lib/kgets.c b/kern/lib/kgets.c[m[m
+:[K[K[1mindex ea72e1b..a1dbb43 100644[m[m
+:[K[K[1m--- a/kern/lib/kgets.c[m[m
+:[K[K[1m+++ b/kern/lib/kgets.c[m[m
+:[K[K[36m@@ -33,6 +33,8 @@[m [mkgets(char *buf, size_t maxlen)[m[m
+:[K[K                        break;[m[m
+:[K[K                }[m[m
+:[K[K [m[m
+:[K[K[32m+[m               [32mDEBUG(DB_VM, "ch = %s\n", ch);[m[41m [m[m
+:[K[K[32m+[m[m
+:[K[K                /* Only allow the normal 7-bit ascii */[m[m
+:[K[K                if (ch>=32 && ch<127 && pos < maxlen-1) {[m[m
+:[K[K                        putch(ch);[m[m
+:[K[K[1mdiff --git a/kern/thread/hardclock.c b/kern/thread/hardclock.c[m[m
+:[K[K[1mindex 79afc2d..1754c1c 100644[m[m
+:[K[K[1m--- a/kern/thread/hardclock.c[m[m
+:[K[K[1m+++ b/kern/thread/hardclock.c[m[m
+:[K[K[36m@@ -43,6 +43,7 @@[m [mclocksleep(int num_secs)[m[m
+:[K[K        s = splhigh();[m[m
+:[K[K        while (num_secs > 0) {[m[m
+:[K[K                thread_sleep(&lbolt);[m[m
+:[K[K[32m+[m               [32mDEBUG(DB_VM, "num_secs = %i\n", num_secs);[m[41m [m[m
+:[K[K                num_secs--;[m[m
+:[K[K        }[m[m
+:[K[K        splx(s);[m[m
+:[K[K[1mdiff --git a/kern/thread/scheduler.c b/kern/thread/scheduler.c[m[m
+:[K[K[1mindex 795f292..6f1d7df 100644[m[m
+:[K[K[1m--- a/kern/thread/scheduler.c[m[m
+:[K[K[1m+++ b/kern/thread/scheduler.c[m[m
+:[K[K[36m@@ -91,6 +91,7 @@[m [mscheduler(void)[m[m
+:[K[K        assert(curspl>0);[m[m
+:[K[K        [m[m
+:[K[K        while (q_empty(runqueue)) {[m[m
+:[K[K[32m+[m               [32mDEBUG(DB_VM, "No thread ready to run\n");[m[41m [m[m
+:[K[K                cpu_idle();[m[m
+:[K[K        }[m[m
+:[K[K [m[m
+:[K[K[1mdiff --git a/kern/thread/synch.c b/kern/thread/synch.c[m[m
+:[K[K[1mindex 4c33942..817928e 100644[m[m
+:[K[K[1m--- a/kern/thread/synch.c[m[m
+:[K[K[1m+++ b/kern/thread/synch.c[m[m
+:[K[K[36m@@ -54,6 +54,9 @@[m [msem_destroy(struct semaphore *sem)[m[m
+:[K[K         * freed. Consequently, there's not a whole lot of point in [m[m
+:[K[K         * including the kfrees in the splhigh block, so we don't.[m[m
+:[K[K         */[m[m
+:[K[K[32m+[m[41m       [m[m
+:[K[K[32m+[m[m
+:[K[K[32m+[m       [32mDEBUG(DB_VM, "Sempaphore desctroyed: %s\n", sem->name);[m[41m [m[m
+:[K[K [m[m
+:[K[K        kfree(sem->name);[m[m
+:[K[K        kfree(sem);[m[m
+:[K[K[36m@@ -113,6 +116,8 @@[m [mlock_create(const char *name)[m[m
+:[K[K                kfree(lock);[m[m
+:[K[K                return NULL;[m[m
+:[K[K        }[m[m
+:[K[K[32m+[m[m
+:[K[K[32m+[m       [32mDEBUG(DB_VM, "Lock created: %s\n", lock->name);[m[41m [m[m
+:[K[K        [m[m
+:[K[K        // add stuff here as needed[m[m
+:[K[K        [m[m
+:[K[K[36m@@ -126,6 +131,8 @@[m [mlock_destroy(struct lock *lock)[m[m
+:[K[K [m[m
+:[K[K        // add stuff here as needed[m[m
+:[K[K        [m[m
+:[K[K[32m+[m       [32mDEBUG(DB_VM, "Lock %s destroyed.\n", lock->name);[m[41m [m[m
+:[K[K[32m+[m[m
+:[K[K        kfree(lock->name);[m[m
+:[K[K        kfree(lock);[m[m
+:[K[K }[m[m
+:[K[K[1mdiff --git a/kern/thread/thread.c b/kern/thread/thread.c[m[m
+:[K[K[1mindex 75ebad5..8f962ef 100644[m[m
+:[K[K[1m--- a/kern/thread/thread.c[m[m
+:[K[K[1m+++ b/kern/thread/thread.c[m[m
+:[K[K[36m@@ -301,6 +301,8 @@[m [mthread_fork(const char *name,[m[m
+:[K[K         */[m[m
+:[K[K        numthreads++;[m[m
+:[K[K [m[m
+:[K[K[32m+[m       [32mDEBUG(DB_VM, "Total number of threads: %i\n", numthreads);[m[41m [m[m
+:[K[K[32m+[m[m
+:[K[K        /* Done with stuff that needs to be atomic */[m[m
+:[K[K        splx(s);[m[m
+:[K[K [m[m
+[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[K[7m(END)[27m[K[K[?1l>bash-4.4$ git commit -am "Initial 10 DEBUG statements" 
+[main ea79fcd] Initial 10 DEBUG statements
+ Committer: Kaitlin E O'leary <koleary6@zeus-2.cec.gmu.edu>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly. Run the
+following command and follow the instructions in your editor to edit
+your configuration file:
+
+    git config --global --edit
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 8 files changed, 24 insertions(+), 1 deletion(-)
+bash-4.4$ exit
+exit
+
+Script done on 2024-09-15 21:22:53-04:00

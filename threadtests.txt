@@ -1,0 +1,25 @@
+Script started on 2024-12-08 20:13:17-05:00
+bash-4.4$ make
+[36mGEN     (B[m/home/koleary6/os161/tags
+[33mCLEAN   (B[m/home/koleary6/os161/kern/kernel
+[36mGEN     (B[m/home/koleary6/os161/kern/compile/vers.c
+*** This is ASST2 build #547 ***
+[32mCC      (B[m/home/koleary6/os161/kern/compile/vers.c
+[35mLINK    (B[m/home/koleary6/os161/kern/kernel
+[34mINSTALL (B[m/home/koleary6/os161/root/kernel
+bash-4.4$ sys161 e[Kkernel
+sys161: Cannot open config file sys161.conf
+bash-4.4$ cd root
+bash-4.4$ sys161 kernel
+sys161: disk: slot 2: DISK1.img: Locked by another process
+bash-4.4$ ps 
+    PID TTY          TIME CMD
+3190252 pts/189  00:00:00 bash
+3205105 pts/189  00:00:00 ps
+bash-4.4$ kill [K-all[K[K[K[K a[K-all
+bash: kill: all: invalid signal specification
+bash-4.4$ ^C
+bash-4.4$ exit
+exit
+
+Script done on 2024-12-08 20:14:18-05:00

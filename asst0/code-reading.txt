@@ -1,0 +1,29 @@
+1)Register s8/$30 is used for frame pointer(fp) in OS/161. The 
+kern/arch/mips/include/asmdefs.h file includes machine-specific constants and functions. In this file, all the general registers are listed. In this list (on line 40), s8/$30 is defined and the comment refers to it as the frame pointer. 
+
+2) Only LAMEbus is supported by OS/161. In the bus.h file, the description mentions that only LAMEbus is supported on line 7. The file then goes on to create a generic bus interface that will be used as the LAMEbus. This is to make it less complicated. _ -> kern/arch/mips/include/bus.sh
+
+3)splhigh sets spl to the highest value, disabling all interrupts.  spl0 sets spl to 0, enabling all interrupts. The difference is that one disables interrups and one enables them. --> kern/arch/mips/mips/spl.h
+
+4) Some details that make a function "machine dependent" include register count, managing real and virtual memory, and virtual memory page size, etc. It is simpler and easier to maintain and update the code when there is this separation.Having all of the code in one function means that we must compile and build the entire code, which will impact performance if we just need to test a portion of it. It would be simpler to test the modifications independently if there was separation. Code that is machine-dependent should be separated to enable cross-platform adaptation.
+
+5) The splx() functino sets the spl level. It takes the new spl level as an argument. It then assigns the new spl level and splx returns the oldspl. The method splx is found in the spl.c file --> kern/arch/mips/mips/spl.c
+
+6) There are 6 hardware interrupt lines in MIPS. We ony use one interrupt i.e the master interrupt that is used to diable/enable the flag in bit 0. --> kern/arch/mips/mips/start.S
+
+7)There are three interrupt priority levels we use in OS/161: splhigh(), spl0(), and splx(s). --> kern/arch/mips/mips/
+
+8) 0 is the system call number for a reboot. It is available to userspace programs that have the correct permissions. Reboot() is a system call. System calls are the main way userspace programs communicate and coordinate with the kernel. This means userspace programs must have access to the cal numbers. --> kern/include/kern/unistd.h -- line 28
+
+9) The pid 32bits/4bytes -- as it is now there could be 4 million different processes (in theory). Each process must have its own unique pid and pids must be positive. Because each pid must be different, positive, and 32 bits long, there are about 2^32 (about 4 million) different pids possible. However, this is assuming the system has an infinite amout of RAM and resources. In reality, this number is limited by the system's specifications. --> kern/include/kern/types.h
+
+10) The copyin function copies a block of memory from the user-level to the kernel. The copyout funtion copies a block of memory from the kernel to the user-level. Functions like copyin and copyout prevent fatal kernel memory faults if invalid addresses are supplied by user-level code. These funtions are helpful whenever data needs to be transferred from the kernal to the user-space or from the user-space to the kernel. For example, when a system call is made, the program is interrupted and switched into kernel mode. Frequently, there is information in the user-space system call that the kernel needs to carry out the call. In this case, functions like copyin and copyout are useful for transferring the data in the system call from the user-space to the kernel and transferring data returned by the kernel to the user-space when it is done. Using these functions ensures the memory is safely and securely copied back and forth. --> kern/lib/copyinout.c
+
+11) The thread_exit() function cleans the thread of parts of the thread structure that don't need to run right away. The thread still exists after this function runs until thread_destroy() is called from exorcise(). The thread_destroy() function actually destroys the thread. It is called in exorcise() to destroy zombie threads. Threads can call thread_exit() on themselves, but CANNOT call thread_destroy() on themselves. This is becuase in thread_destroy(), all resources associated with the thread are freed and cleaned up after the thread finishes. If the thread calls thread_destroy() on itself, it is using its resources to try to free those same resources. This means the thread is trying to deallocate the resources it is still actively using to detroy itself. This could lead to memory issues, illegal memory access/segmentation faults, and/or a failure of the thread to successfully be destroyed. --> kern/thread/thread.c
+
+12) A thread can be in one of four states: S_RUN, S_READY, S_SLEEP, S_ZOMB. Zombie threads get cleaned up when exorcise() is called. In exorcise(), the array of zombie threads is looped through. As long as it is not the current thread, thread_destroy() is called on that thread to destroy it. The array is then shrunk becuase the zombies have been destroyed to efficiently keep track of the number of zombie threads in existence. I obtained my answer from kern/thread/thread.c. I looked at the exorcise() function, the enum that describes the possible thread states, and the thread_destroy() function the their associated JavaDocs and comments. --> kern/thread/thread.c
+
+13) Both the thread_yield() and the thread_sleep() functions make the thread yield the cpu. The thread_yeild() function yields the cpu to another process, but the thread is still runnable. In thread_sleep(), the thread yields the cpu to another process and then puts the thread to sleep. The thread can be woken up by calling thread_wakeup() on that thread and then it will be runnable again. These functions might be used when a thread is waiting for a specific set of conditions or if the thread does a certain action at a predictable interval. This allows other threads to use the cpu while the thread is waiting. --> kern/thread/thread.c 
+
+
+
